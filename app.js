@@ -37,337 +37,343 @@ const MONTHS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sep
 const fdate = d => { if (!d) return ''; const x = new Date(d + 'T12:00'); return `${x.getDate()} ${MONTHS[x.getMonth()]} ${x.getFullYear()}`; };
 const fdateLong = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'}) : '—';
 const money = a => { if (a == null) return ''; const [i, d] = a.toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + ',' + d + '\u00a0€'; };
-
 let ME = null;
 const api = (p, o = {}) => Store.api(p, o);
-const toast = (m) => { const t = $('#toast'); t.innerHTML = ic('check', 2.2).replace('<svg', '<svg width="17" height="17"') + esc(m); t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600); };
+const toast = (m) => { const t = $('#toast'); t.innerHTML = ic('check', 2.2).replace('<svg', '<svg width="18" height="18"') + esc(m); t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600); };
+I.dots = '<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>';
+I.close = '<path d="M6 6l12 12M18 6 6 18"/>';
+I.down = '<path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M5 19h14"/>';
+I.help = '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6M12 17.2v.1"/>';
+I.folder = '<path d="M3.5 7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>';
+I.clip = '<rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9 4.5V3.6c0-.3.3-.6.6-.6h4.8c.3 0 .6.3.6.6v.9M9 10h6M9 14h4"/>';
+I.bag = '<path d="M6 8h12l-1 12H7z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>';
+I.sparkle = '<path d="M11 3.5c.7 4.4 2.6 6.3 7 7-4.4.7-6.3 2.6-7 7-.7-4.4-2.6-6.3-7-7 4.4-.7 6.3-2.6 7-7z"/><path d="M18.5 15.5c.3 1.8.9 2.4 2.5 2.7-1.6.3-2.2.9-2.5 2.7-.3-1.8-.9-2.4-2.5-2.7 1.6-.3 2.2-.9 2.5-2.7z"/>';
 
-// theme
+// ---------- brand data ----------
+const MF = {'Santé':'sante','Sport':'sport','Factures & achats':'factures','Administratif':'admin','Logement':'logement','Banque & impôts':'banque','Travail':'travail','Voyages':'voyages','Véhicule':'vehicule','Assurance':'assurance','Autres':'hero'};
+// tint (card), deep (accents, AA on tint), soft (header wash)
+const TINT = {
+  'Santé':['#fbe0df','#b73b3b','#f8d4d2'], 'Sport':['#fde6cb','#a8530f','#fbdcb6'], 'Factures & achats':['#dcecd8','#2f7041','#cfe5ca'],
+  'Administratif':['#e7e0f6','#5c3fa8','#dcd2f2'], 'Logement':['#d9e6f6','#1f5ea8','#cbdcf2'], 'Banque & impôts':['#fbf0c8','#8a6200','#f7e6a8'],
+  'Travail':['#e3e6ec','#3e4b61','#d6dbe4'], 'Voyages':['#d4eee9','#16705f','#c4e7e0'], 'Véhicule':['#fadbd7','#a73328','#f6cbc5'],
+  'Assurance':['#e2e3f8','#3d43a8','#d5d7f4'], 'Autres':['#eeece0','#4a4a3a','#e4e1d0']};
+const DESC = {'Santé':'Ordonnances, résultats, mutuelle…\nTout ce qu’il te faut, au même endroit.', 'Sport':'Licences, abonnements, certificats…\nTon énergie, bien organisée.',
+  'Factures & achats':'Factures, tickets, garanties…\nTes achats sous contrôle.', 'Administratif':'Identité, attestations, démarches…\nLa paperasse, en ordre.',
+  'Logement':'Loyer, quittances, énergie…\nTon chez-toi, bien rangé.', 'Banque & impôts':'Relevés, avis d’imposition…\nTes finances, au clair.',
+  'Travail':'Bulletins de paie, contrats…\nTa vie pro, à portée de main.', 'Voyages':'Billets, réservations, passeports…\nPrêt à partir.',
+  'Véhicule':'Carte grise, contrôle technique…\nTa voiture, en règle.', 'Assurance':'Attestations, contrats, sinistres…\nTu es couvert.', 'Autres':'Tout le reste, rangé quand même.'};
+const mimg = (c, cls = '', w = 120) => `<img class="mz ${cls}" src="m/${MF[c] || 'hero'}.webp" alt="" width="${w}" decoding="async" loading="lazy" draggable="false">`;
+const tint = c => TINT[c] || TINT.Autres;
+const ndocs = n => `${n} doc${n > 1 ? 's' : ''}`;
+const ftype = d => { const m = (d.mime || d.filename || '').toLowerCase(); return /pdf/.test(m) ? ['PDF', '#d64538', '#fde4e1'] : /png|jpe?g|image|heic|webp/.test(m) ? ['IMG', '#2c6fd6', '#dfeafc'] : ['DOC', '#2f7041', '#dcecd8']; };
+const ficon = d => { const [t, c, b] = ftype(d); return `<span class="fic" style="--fc:${c};--fb:${b}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z" fill="currentColor" fill-opacity=".14"/><path d="M14 3v5h5"/></svg><b>${t}</b></span>`; };
+const docRow = (d, i = 0) => `<a class="drow" href="#/doc/${d.id}" style="--i:${Math.min(i, 12)}">${ficon(d)}<span class="dm"><b>${esc(d.title)}</b><small>${esc(fdate(d.date) || '—')}${d.amount != null ? ' · ' + money(d.amount) : ''}</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.2)}</span></a>`;
+const empty = (h, p, cta = true) => `<div class="empty-st">${mimg('Autres', 'bob', 120)}<h3>${h}</h3><p>${p}</p>${cta ? `<button class="btn primary" data-add>${ic('plus', 2.4)}Ajouter un document</button>` : ''}</div>`;
+const card = docRow, row = docRow; // compat
+
+// theme: light by default; dark only if chosen in Paramètres
 document.documentElement.dataset.theme = localStorage.zipTheme === 'dark' ? 'dark' : 'light';
-function toggleTheme() {
-  const dark = document.documentElement.dataset.theme === 'dark';
-  document.documentElement.dataset.theme = localStorage.zipTheme = dark ? 'light' : 'dark';
-}
-
-// ---------- auth ----------
-function renderAuth(mode = 'login') {
-  $('#app').innerHTML = `<div class="auth"><div class="box glass fade-in">
-    <div class="orb lg" style="margin:0 auto"></div>
-    <h1>${mode === 'login' ? 'Bon retour sur Zip' : 'Bienvenue sur Zip'}</h1>
-    <p>Vos documents, rangés pour vous.<br>Ordonnances, factures, billets — retrouvés en une phrase.</p>
-    <form id="af">
-      ${mode === 'register' ? '<div class="field"><label>Prénom</label><input name="name" autocomplete="given-name" required></div>' : ''}
-      <div class="field"><label>E-mail</label><input name="email" type="email" autocomplete="email" required></div>
-      <div class="field"><label>Mot de passe</label><input name="password" type="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8" required></div>
-      <div class="err" id="aerr"></div>
-      <button class="btn primary">${mode === 'login' ? 'Se connecter' : 'Créer mon espace'}</button>
-    </form>
-    <div class="sw">${mode === 'login' ? 'Pas encore de compte ? <button id="sw">Créer un compte</button>' : 'Déjà inscrit ? <button id="sw">Se connecter</button>'}</div>
-  </div></div>`;
-  $('#sw').onclick = () => renderAuth(mode === 'login' ? 'register' : 'login');
-  $('#af').onsubmit = async e => {
-    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
-    try { await api('/api/' + (mode === 'login' ? 'login' : 'register'), {method:'POST', body: JSON.stringify(f)}); boot(); }
-    catch (err) { $('#aerr').textContent = err.message; }
-  };
-}
 
 // ---------- shell ----------
-function shell(active, inner) {
-  const counts = ME.counts || {};
-  const nav = (h, n, label, on) => `<a class="navi ${on ? 'on' : ''}" href="${h}" ${on ? 'aria-current="page"' : ''}>${ic(n)}<span>${label}</span></a>`;
-  const isDocs = active === 'grid' || String(active).startsWith('cat:');
-  const tab = (h, n, label, on) => `<a href="${h}" class="${on ? 'on' : ''}" ${on ? 'aria-current="page"' : ''}>${ic(n, 2)}<span>${label}</span></a>`;
-  return `<div class="shell">
-    <aside class="side" aria-label="Menu principal">
-      <div class="brand"><div class="logo" aria-hidden="true">Z</div>Zip</div>
-      ${nav('#/', 'home', 'Accueil', active === 'home')}${nav('#/zip', 'sparkle', 'Ask Zip', active === 'spark')}${nav('#/browse', 'docs', 'Documents', isDocs)}
-      <button class="btn primary" style="width:100%;margin:10px 0" data-add>${ic('plus', 2.2)}Ajouter un document</button>
-      <div class="sep">Catégories</div>
-      ${ME.categories.filter(c => counts[c]).map(c => `<a class="navi ${active === 'cat:' + c ? 'on' : ''}" href="#/cat/${encodeURIComponent(c)}"><span class="mini" aria-hidden="true">${Mascot.svg(c, 26)}</span><span>${esc(c)}</span><span class="n">${counts[c]}</span></a>`).join('')}
-      <div class="foot">${nav('#/settings', 'gear', 'Réglages', active === 'settings')}</div>
-    </aside>
-    <main class="main" id="main">${inner}</main>
-    <nav class="tabbar" aria-label="Navigation principale">
-      ${tab('#/', 'home', 'Accueil', active === 'home')}
-      ${tab('#/zip', 'sparkle', 'Ask Zip', active === 'spark')}
-      <button class="tadd" data-add aria-label="Ajouter un document"><span class="pl">${ic('plus', 2.4)}</span><span>Ajouter</span></button>
-      ${tab('#/browse', 'docs', 'Documents', isDocs)}
-      ${tab('#/settings', 'gear', 'Réglages', active === 'settings')}
-    </nav></div>`;
+function shell(active, inner, {nav = true, cls = ''} = {}) {
+  const isDocs = active === 'docs' || String(active).startsWith('cat:');
+  const tab = (h, n, label, on) => `<a href="${h}" class="${on ? 'on' : ''}" ${on ? 'aria-current="page"' : ''}>${ic(n, on ? 2.2 : 1.8)}<span>${label}</span></a>`;
+  return `<div class="shell ${cls}"><main class="main" id="main">${inner}</main>
+    ${nav ? `<nav class="tabbar" aria-label="Navigation principale">
+      ${tab('#/', 'home', 'Accueil', active === 'home')}${tab('#/zip', 'sparkle', 'Ask Zip', active === 'zip')}
+      <button class="tadd" data-add aria-label="Ajouter un document">${ic('plus', 2.4)}</button>
+      ${tab('#/browse', 'file', 'Documents', isDocs)}${tab('#/settings', 'gear', 'Réglages', active === 'settings')}
+    </nav>` : ''}</div>`;
 }
-const askBar = (ph = 'Retrouve un document, une garantie…') => `<a class="askbar" href="#/zip" aria-label="Ask Zip : poser une question sur vos documents">
-  <span class="spk" aria-hidden="true">${ic('sparkle', 1.8)}</span><span class="tx"><b>Ask Zip</b><span>${ph}</span></span></a>`;
 function wire() {
-  document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => openAdd());
-  document.querySelectorAll('.fi2').forEach(i => i.onchange = e => e.target.files.length && uploadFiles(e.target.files));
-  const th = $('#th'); if (th) th.onclick = toggleTheme;
-  const lo = $('#lo'); if (lo) lo.onclick = resetDemo;
+  document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing'); openAdd(b.dataset.cat); });
+  document.querySelectorAll('input.fi2').forEach(i => i.onchange = e => e.target.files.length && uploadFiles(e.target.files, i.dataset.cat));
+  document.querySelectorAll('[data-hop]').forEach(a => a.onclick = e => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; e.preventDefault(); a.classList.add('hop'); setTimeout(() => location.hash = a.getAttribute('href'), 230); });
+  document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => history.length > 1 ? history.back() : (location.hash = '#/'));
 }
+const topbar = (title = '', right = '', back = true) => `<header class="top">${back ? `<button class="rbtn" data-back aria-label="Retour">${ic('back', 2.2)}</button>` : ''}${title}<span class="sp"></span>${right}</header>`;
 
-// ---------- components ----------
-const badge = c => `<span class="badge" style="--c:${COL[c]}">${ic(c, 2.2)}</span>`;
-const thumb = d => `<div class="thumb" style="${d.thumb ? `background-image:url(${d.thumb})` : ''}">${badge(d.category)}</div>`;
-const row = (d, i = 0) => `<a class="row glass" href="#/doc/${d.id}" style="animation-delay:${i * 40}ms">${thumb(d)}
-  <div class="meta"><div class="t">${esc(d.title)}</div><div class="s">${esc([d.issuer, fdate(d.date)].filter(Boolean).join(' · '))}</div>
-  <div class="tags"><span class="chip c" style="--c:${COL[d.category]}">${esc(d.category)}</span>${d.warranty_end && d.warranty_end >= today() ? '<span class="chip ok">Sous garantie</span>' : ''}${d.status === 'enriching' ? '<span class="chip ai">Analyse IA…</span>' : ''}<span class="chip">${SRC[d.source] || d.source}</span></div></div>
-  ${d.amount != null ? `<div class="amt">${money(d.amount)}</div>` : ''}</a>`;
-const card = (d, i = 0) => `<a class="card glass" href="#/doc/${d.id}" style="animation-delay:${i * 50}ms"><div class="pv" style="${d.thumb ? `background-image:url(${d.thumb})` : ''}"></div>
-  <div class="bd"><span class="chip c" style="--c:${COL[d.category]}">${esc(d.category)}</span>${d.status === 'enriching' ? ' <span class="chip ai">Analyse IA…</span>' : ''}<div class="t" style="margin-top:8px">${esc(d.title)}</div><div class="s">${esc([fdate(d.date), d.amount != null ? money(d.amount) : ''].filter(Boolean).join(' · '))}</div></div></a>`;
-const today = () => new Date().toISOString().slice(0, 10);
-const empty = (h, p, cta = true) => `<div class="empty-st"><div class="art"><i></i><i></i><i></i></div><h3>${h}</h3><p>${p}</p>${cta ? `<button class="btn primary" data-add style="margin-top:8px">${ic('plus', 2.2)}Ajouter un document</button>` : ''}</div>`;
-const greet = () => { const h = new Date().getHours(); return h < 6 ? 'Bonne nuit' : h < 18 ? 'Bonjour' : 'Bonsoir'; };
+// ---------- 1. welcome ----------
+function vWelcome() {
+  return `<div class="welcome">
+    <div class="wtop"><div class="logo xl" aria-label="Zip">Zip</div>
+      <h1>Vos documents,<br>bien rangés.</h1><p>L’IA s’occupe du reste.</p></div>
+    <div class="wart" aria-hidden="true"><span class="hill h1"></span><span class="hill h2"></span><span class="hill h3"></span>
+      <span class="fold f1"></span><span class="fold f2"></span><span class="fold f3"></span>
+      <img class="mz bob hero" src="m/hero.webp" alt="" width="226" height="286" fetchpriority="high"></div>
+    <div class="wbot"><a class="btn primary big" href="#/" id="go" data-enter>Commencer ${ic('send', 2.2)}</a>
+      <p class="login">Déjà un compte ? <a href="#/" data-enter>Se connecter</a></p></div></div>`;
+}
+function afterWelcome() { document.querySelectorAll('[data-enter]').forEach(a => a.onclick = () => { localStorage.zipWelcomed = '1'; }); }
 
-// ---------- views ----------
+// ---------- 2. home ----------
 async function vHome() {
   const cats = ME.categories.filter(c => c !== 'Autres' || ME.counts[c]);
-  const total = Object.values(ME.counts).reduce((x, y) => x + y, 0);
   return shell('home', `
-    <header class="homebar"><div><h1 class="wordmark">Zip</h1><p class="sub">${total} document${total > 1 ? 's' : ''} rangé${total > 1 ? 's' : ''}</p></div></header>
-    ${askBar()}
-    <section aria-labelledby="hadd"><h2 class="sec" id="hadd">Ajouter un document</h2>
-    <div class="addrow">
-      <label class="addbtn">${ic('camera', 2)}<span><b>Scanner</b><small>Prendre une photo</small></span><input type="file" accept="image/*" capture="environment" class="fi2 vh" aria-label="Scanner un document avec l’appareil photo"></label>
-      <label class="addbtn">${ic('up', 2)}<span><b>Importer</b><small>PDF ou image</small></span><input type="file" multiple accept="image/*,application/pdf" class="fi2 vh" aria-label="Importer un fichier PDF ou une image"></label>
-    </div></section>
-    <section aria-labelledby="hcat"><h2 class="sec" id="hcat">Catégories</h2>
-    <ul class="catlist" role="list">${cats.map(c => { const n = ME.counts[c] || 0; return `<li><a class="catrow" href="#/cat/${encodeURIComponent(c)}">
-      <span class="av" aria-hidden="true">${Mascot.svg(c, 40)}</span><span class="nm">${esc(c)}</span><span class="ct">${n ? n + ' doc' + (n > 1 ? 's' : '') : 'Vide'}</span><span class="chv" aria-hidden="true">${ic('chev', 2)}</span></a></li>`; }).join('')}</ul></section>
-    <p class="demo-note">Démo : vos données restent sur cet appareil. N’importez pas de documents sensibles.</p>
+    <header class="hhead"><div class="logo">Zip</div><a class="rbtn" href="#/zip" aria-label="Ask Zip">${ic('sparkle', 1.9)}</a></header>
+    <h1 class="hello">Bonjour ${esc(ME.name)} <span aria-hidden="true">👋</span></h1><p class="lead">Voici vos documents du jour.</p>
+    <a class="askcard" href="#/zip"><span class="spk" aria-hidden="true">${ic('sparkle', 1.8)}</span><span class="tx"><b>Ask Zip</b><small>Pose une question, trouve un document, ou résume un dossier.</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.4)}</span></a>
+    <label class="searchf">${ic('search', 2.2)}<input id="hq" type="search" placeholder="Rechercher un document…" aria-label="Rechercher un document" autocomplete="off"></label>
+    <div id="hres" hidden></div>
+    <section id="hcats" aria-labelledby="mc"><div class="sechead"><h2 id="mc">Mes catégories</h2><a href="#/browse">Tout voir</a></div>
+    <div class="cgrid">${cats.map((c, i) => { const n = ME.counts[c] || 0, [t, d] = tint(c); return `<a class="ccard" data-hop href="#/cat/${encodeURIComponent(c)}" style="--t:${t};--d:${d};--i:${i}" aria-label="${esc(c)}, ${ndocs(n)}">
+      ${mimg(c, '', 116)}<span class="cl"><span><b>${esc(c)}</b><small>${ndocs(n)}</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.4)}</span></span></a>`; }).join('')}</div></section>
   `);
 }
-async function vBrowse(q = '') {
-  const {docs} = await api('/api/docs' + (q ? '?q=' + encodeURIComponent(q) : ''));
-  return shell('grid', `
-    <h1 class="big">Documents</h1>${askBar()}
-    <label class="search glass">${ic('search')}<input id="sq" placeholder="Filtrer : nom, magasin, médecin…" aria-label="Filtrer les documents" value="${esc(q)}"></label>
-    <div class="seg"><button class="on">Tout</button>${ME.categories.filter(c => ME.counts[c]).map(c => `<button onclick="location.hash='#/cat/${encodeURIComponent(c)}'">${esc(c)}</button>`).join('')}</div>
-    ${docs.length ? `<div class="grid">${docs.map(card).join('')}</div>` : (q ? empty('Aucun résultat', `Rien ne correspond à « ${esc(q)} ». Essayez un autre mot, ou demandez à Zip.`, false) : empty('Rien ici pour l’instant', 'Vos documents apparaîtront ici, classés automatiquement.'))}
-  `);
+function afterHome() {
+  const q = $('#hq'), res = $('#hres'), cats = $('#hcats');
+  q.oninput = debounce(async () => {
+    const v = q.value.trim(); if (!v) { res.hidden = true; cats.hidden = false; return; }
+    const {docs} = await api('/api/docs?q=' + encodeURIComponent(v));
+    res.innerHTML = `<div class="sechead"><h2>${docs.length} résultat${docs.length > 1 ? 's' : ''}</h2></div>` + (docs.length ? `<div class="dlist">${docs.map(docRow).join('')}</div>` : `<p class="lead">Rien trouvé pour « ${esc(v)} ». Essaie <a class="lnk" href="#/zip">Ask Zip</a>.</p>`);
+    res.hidden = false; cats.hidden = true;
+  }, 180);
 }
+
+// ---------- documents (browse) ----------
+async function vBrowse() {
+  const {docs} = await api('/api/docs');
+  return shell('docs', `${topbar('<h1 class="ttl">Documents</h1>', '', false)}
+    <label class="searchf">${ic('search', 2.2)}<input id="sq" type="search" placeholder="Rechercher un document…" aria-label="Rechercher un document" autocomplete="off"></label>
+    <div class="chips" role="list">${ME.categories.filter(c => ME.counts[c]).map(c => `<a role="listitem" class="chip" href="#/cat/${encodeURIComponent(c)}" style="--t:${tint(c)[0]};--d:${tint(c)[1]}">${esc(c)} <span>${ME.counts[c]}</span></a>`).join('')}</div>
+    <div class="sechead"><h2 id="bc">${docs.length} documents</h2></div>
+    <div class="dlist" id="bl">${docs.length ? docs.map(docRow).join('') : ''}</div>${docs.length ? '' : empty('Rien ici pour l’instant', 'Tes documents apparaîtront ici, rangés automatiquement.')}`);
+}
+function afterBrowse() {
+  const sq = $('#sq'); sq.oninput = debounce(async () => { const {docs} = await api('/api/docs' + (sq.value ? '?q=' + encodeURIComponent(sq.value) : '')); $('#bl').innerHTML = docs.map(docRow).join(''); $('#bc').textContent = sq.value ? `${docs.length} résultat${docs.length > 1 ? 's' : ''}` : `${docs.length} documents`; }, 180);
+}
+
+// ---------- 5. category ----------
 async function vCat(c) {
   const {docs} = await api('/api/docs?category=' + encodeURIComponent(c));
-  const total = docs.reduce((a, d) => a + (d.amount || 0), 0);
-  return shell('cat:' + c, `
-    <div class="topbar"><a class="iconbtn" href="#/" aria-label="Retour à l’accueil">${ic('back', 2)}</a></div>
-    <div class="chead"><span class="av" aria-hidden="true">${Mascot.svg(c, 44)}</span><div><h1>${esc(c)}</h1><p>${docs.length} document${docs.length > 1 ? 's' : ''}${total ? ' · ' + money(total) : ''}</p></div></div>
-    ${askBar('Une question sur ces documents ?')}
-    ${docs.length ? `<div class="grid">${docs.map(card).join('')}</div>` : empty('Aucun document ici', `Dès qu’un document ${c === 'Santé' ? 'médical' : 'de cette catégorie'} arrivera, Zip le rangera ici.`)}
-  `);
+  const [t, d, s] = tint(c);
+  return shell('cat:' + c, `<div class="chero" style="--t:${t};--d:${d};--s:${s}">
+      <span class="blob b1" aria-hidden="true"></span><span class="blob b2" aria-hidden="true"></span>
+      <header class="top"><a class="rbtn" href="#/" aria-label="Retour à l’accueil">${ic('back', 2.2)}</a><span class="sp"></span><button class="rbtn" id="more" aria-label="Plus d’options">${ic('dots', 2.6)}</button></header>
+      <div class="cmasc">${mimg(c, 'bob pop', 190)}</div></div>
+    <div class="cbody" style="--t:${t};--d:${d}">
+      <span class="tag">${esc(c)}</span><h1 class="ctitle">${esc(c)}</h1>
+      <p class="cnt">${ic('clip', 2)}${docs.length} document${docs.length > 1 ? 's' : ''}</p>
+      <p class="cdesc">${esc(DESC[c] || '').replace('\n', '<br>')}</p>
+      <button class="btn primary wide" data-add data-cat="${esc(c)}">${ic('plus', 2.4)}Ajouter un document</button>
+      <div class="sechead"><h2>Documents</h2></div>
+      ${docs.length ? `<div class="dlist">${docs.map(docRow).join('')}</div>` : `<p class="lead">Aucun document pour l’instant. Dès qu’un document ${c === 'Santé' ? 'médical' : 'de ce type'} arrive, Zip le range ici.</p>`}
+    </div>`, {cls: 'catpage'});
 }
+function afterCat(c) {
+  $('#more').onclick = () => sheet(`<div class="shead"><h3 id="shh">${esc(c)}</h3><button class="rbtn" id="shx" aria-label="Fermer">${ic('close', 2.2)}</button></div>
+    <div class="menu"><a class="mrow" href="#/zip">${ic('sparkle')}<span>Demander à Zip</span>${ic('chev', 2.2)}</a><a class="mrow" href="#/browse">${ic('file')}<span>Tous les documents</span>${ic('chev', 2.2)}</a></div>`);
+}
+
+// ---------- 7. document detail ----------
 async function vDoc(id) {
   const d = await api('/api/docs/' + id);
   const ents = Object.entries(d.entities || {});
   let w = '';
-  if (d.warranty_end) {
-    const s = new Date(d.date), e = new Date(d.warranty_end), n = new Date();
-    const p = Math.max(0, Math.min(100, (e - n) / (e - s) * 100));
-    w = `<div class="warranty glass"><div class="ring" style="--p:${p}%"></div><div><b style="font-size:15px">${e > n ? 'Sous garantie' : 'Garantie expirée'}</b><div class="muted" style="font-size:13.5px;margin-top:2px">Jusqu’au ${fdateLong(d.warranty_end)}</div></div></div>`;
-  }
+  if (d.warranty_end) { const e = new Date(d.warranty_end), n = new Date(); w = `<div class="info"><span class="ok ${e > n ? '' : 'ko'}">${ic(e > n ? 'shield' : 'close', 2)}</span><div><b>${e > n ? 'Sous garantie' : 'Garantie expirée'}</b><small>Jusqu’au ${fdateLong(d.warranty_end)}</small></div></div>`; }
+  const [t, dk] = tint(d.category);
   return shell('cat:' + d.category, `
-    <div class="topbar"><button class="iconbtn" onclick="history.back()" aria-label="Retour">${ic('back', 2)}</button><span class="eyebrow">${SRC[d.source] || ''}</span><a class="iconbtn" href="${d.file}" target="_blank" aria-label="Ouvrir le fichier d’origine">${ic('ext', 2)}</a></div>
-    <div class="detail" style="margin-top:12px">
-      <div class="preview">${(d.scan || d.thumb) ? `<img id="pvimg" src="${d.scan || d.thumb}" alt="">` : `<div style="padding:60px;text-align:center" class="muted">${ic('file')}Aperçu indisponible</div>`}
-        ${d.scan ? `<button class="open" id="orig" data-o="${d.file}" data-s="${d.scan}" data-m="${esc(d.mime || '')}">${ic('camera', 2)}Voir l’original</button>${'<span class="scanbadge">Scan nettoyé</span>'}` : `<a class="open" href="${d.file}" target="_blank">${ic('ext', 2)}Ouvrir l’original</a>`}</div>
-      <div class="dt" style="display:flex;flex-direction:column;gap:14px">
-        <div><span class="chip c" style="--c:${COL[d.category]}">${ic(d.category, 2).replace('<svg', '<svg width="11" height="11" style="vertical-align:-1px;margin-right:4px"')}${esc(d.category)}</span>${d.status === 'enriching' ? ' <span class="chip ai">Analyse IA en cours…</span>' : ''}
-        <h1>${esc(d.title)}</h1><div class="muted" style="font-size:14.5px">${esc([d.issuer, fdateLong(d.date)].filter(Boolean).join(' · '))}</div></div>
-        <div class="summary glass"><div class="orb sm"></div><div>${esc(d.summary)}</div></div>
-        ${w}
-        <div class="kv glass">
-          <div><span>Date</span><b>${fdateLong(d.date)}</b></div>
-          ${d.issuer ? `<div><span>Émetteur</span><b>${esc(d.issuer)}</b></div>` : ''}
-          ${d.amount != null ? `<div><span>Montant</span><b>${money(d.amount)}</b></div>` : ''}
-          ${ents.map(([k, v]) => `<div><span>${esc(k[0].toUpperCase() + k.slice(1))}</span><b>${esc(v)}</b></div>`).join('')}
-          <div><span>Fichier</span><b style="font-weight:450">${esc(d.filename)}</b></div>
-        </div>
-        <details class="act glass"><summary><div class="orb sm" style="width:22px;height:22px"></div>Ce que Zip a fait<span style="margin-left:auto;color:var(--ink3)">${ic('chev')}</span></summary>
-          <ol>${d.steps.map(s => `<li>${esc(s.s)}</li>`).join('')}</ol></details>
-        <div class="actions"><select class="pill" id="recat">${ME.categories.map(c => `<option ${c === d.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
-          <button class="btn danger" id="del">${ic('trash')}Supprimer</button></div>
-      </div></div>`);
+    ${topbar(`<div class="dtitle"><h1>${esc(d.title)}</h1><p>${esc(fdateLong(d.date))}</p></div>`, `<button class="rbtn" id="more" aria-label="Plus d’options">${ic('dots', 2.6)}</button>`)}
+    <div class="paper">${(d.scan || d.thumb) ? `<img id="pvimg" src="${d.scan || d.thumb}" alt="Aperçu du document">` : `<div class="noprev">${ic('file')}Aperçu indisponible</div>`}
+      ${d.scan ? `<span class="scanbadge">Scan nettoyé</span><button class="open" id="orig" data-o="${d.file}" data-s="${d.scan}" data-m="${esc(d.mime || '')}">${ic('camera', 2)}Voir l’original</button>` : ''}</div>
+    <div class="dinfo">
+      <a class="tag" href="#/cat/${encodeURIComponent(d.category)}" style="--t:${t};--d:${dk}">${esc(d.category)}</a>${d.status === 'enriching' ? ' <span class="tag ai">Analyse IA…</span>' : ''}
+      <div class="summary"><span class="spk" aria-hidden="true">${ic('sparkle', 1.8)}</span><p>${esc(d.summary)}</p></div>
+      ${w}
+      <dl class="kv"><div><dt>Date</dt><dd>${fdateLong(d.date)}</dd></div>${d.issuer ? `<div><dt>Émetteur</dt><dd>${esc(d.issuer)}</dd></div>` : ''}${d.amount != null ? `<div><dt>Montant</dt><dd>${money(d.amount)}</dd></div>` : ''}
+        ${ents.map(([k, v]) => `<div><dt>${esc(k[0].toUpperCase() + k.slice(1))}</dt><dd>${esc(v)}</dd></div>`).join('')}<div><dt>Fichier</dt><dd class="fn">${esc(d.filename)}</dd></div></dl>
+      <label class="recat"><span>Catégorie</span><select id="recat">${ME.categories.map(c => `<option ${c === d.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+      <details class="act"><summary>${ic('sparkle')}Ce que Zip a fait</summary><ol>${d.steps.map(s => `<li>${esc(s.s)}</li>`).join('')}</ol></details>
+    </div>
+    <div class="dock" role="toolbar" aria-label="Actions">
+      <button id="shr">${ic('share', 2)}<span>Partager</span></button>
+      <a href="${d.file}" download="${esc(d.filename)}" id="dl">${ic('down', 2)}<span>Télécharger</span></a>
+      <button id="del" class="red">${ic('trash', 2)}<span>Supprimer</span></button></div>`, {nav: false, cls: 'docpage'});
 }
 function afterDoc(id) {
   const o = $('#orig'); if (o) o.onclick = () => { if (/pdf/i.test(o.dataset.m || '')) return window.open(o.dataset.o, '_blank'); const im = $('#pvimg'), showO = o.dataset.on !== '1'; im.src = showO ? o.dataset.o : o.dataset.s; o.dataset.on = showO ? '1' : '0';
-    o.innerHTML = showO ? ic('spark', 2) + 'Voir le scan' : ic('camera', 2) + 'Voir l’original'; const b = $('.scanbadge'); if (b) b.textContent = showO ? 'Photo d’origine' : 'Scan nettoyé'; };
+    o.innerHTML = showO ? ic('sparkle', 2) + 'Voir le scan' : ic('camera', 2) + 'Voir l’original'; const b = $('.scanbadge'); if (b) b.textContent = showO ? 'Photo d’origine' : 'Scan nettoyé'; };
   $('#recat').onchange = async e => { await api('/api/docs/' + id, {method:'PATCH', body: JSON.stringify({category: e.target.value})}); await refreshMe(); toast('Catégorie mise à jour'); route(); };
-  $('#del').onclick = async () => { if (!confirm('Supprimer ce document ?')) return; await api('/api/docs/' + id, {method:'DELETE'}); await refreshMe(); toast('Document supprimé'); location.hash = '#/'; };
+  const del = async () => { if (!confirm('Supprimer ce document ?')) return; await api('/api/docs/' + id, {method:'DELETE'}); await refreshMe(); toast('Document supprimé'); location.hash = '#/'; };
+  $('#del').onclick = del;
+  $('#shr').onclick = async () => { const a = $('#dl'); try { const b = await (await fetch(a.href)).blob(); const f = new File([b], a.getAttribute('download'), {type: b.type});
+    if (navigator.canShare && navigator.canShare({files: [f]})) await navigator.share({files: [f], title: document.querySelector('.dtitle h1').textContent}); else { a.click(); toast('Partage indisponible ici : fichier téléchargé'); } } catch (e) { if (e.name !== 'AbortError') toast('Partage impossible'); } };
+  $('#more').onclick = () => sheet(`<div class="shead"><h3 id="shh">Options</h3><button class="rbtn" id="shx" aria-label="Fermer">${ic('close', 2.2)}</button></div><div class="menu"><a class="mrow" href="${$('#dl').href}" target="_blank">${ic('ext')}<span>Ouvrir le fichier d’origine</span>${ic('chev', 2.2)}</a><button class="mrow red" id="del2">${ic('trash')}<span>Supprimer</span>${ic('chev', 2.2)}</button></div>`, () => { $('#del2').onclick = del; });
 }
 
-// assistant
+// ---------- 6. Ask Zip ----------
 const CHAT = JSON.parse(sessionStorage.zipChat || '[]');
+const miniDoc = d => `<a class="minidoc" href="#/doc/${d.id}">${ficon(d)}<span class="dm"><b>${esc(d.title)}</b><small>${esc(fdate(d.date) || '')}</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.2)}</span></a>`;
 function msgHTML(m) {
   if (m.me) return `<div class="msg me">${esc(m.text)}</div>`;
-  if (m.typing) return `<div class="msg bot"><div class="typing"><i></i><i></i><i></i></div></div>`;
-  return `<div class="msg bot"><div class="txt">${esc(m.text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</div>
-    ${m.docs && m.docs.length ? `<div class="results">${m.docs.map(card).join('')}</div>` : ''}
-    ${m.steps ? `<details><summary class="why">${ic('spark').replace('<svg', '<svg width="13" height="13"')}Comment j’ai cherché</summary><ul class="whylist">${m.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>` : ''}</div>`;
+  const av = `<span class="zav" aria-hidden="true">${ic('sparkle', 1.8)}</span>`;
+  if (m.typing) return `<div class="msg bot">${av}<div class="bub"><div class="typing" aria-label="Zip réfléchit"><i></i><i></i><i></i></div></div></div>`;
+  return `<div class="msg bot">${av}<div class="bub"><div class="txt">${esc(m.text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</div>
+    ${m.docs && m.docs.length ? `<div class="results">${m.docs.slice(0, 4).map(miniDoc).join('')}</div>` : ''}
+    ${m.steps ? `<details><summary class="why">Comment j’ai cherché</summary><ul class="whylist">${m.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>` : ''}</div></div>`;
 }
 function vZip() {
-  return shell('spark', `<div class="chat">
-    <div class="chathead" id="zh"><span class="spk" aria-hidden="true">${ic('sparkle', 1.8)}</span><div><h1 class="name">Ask Zip</h1><div class="st" id="zst" role="status">${Object.values(ME.counts).reduce((a, b) => a + b, 0)} documents · tout reste sur cet appareil</div></div></div>
-    <div class="msgs" id="msgs">${CHAT.length ? CHAT.map(msgHTML).join('') : `<div style="text-align:center;margin-top:10px"><div style="font-size:1.4rem;font-weight:650;letter-spacing:-.02em">Que cherchez-vous ?</div><div class="muted" style="margin-top:6px">Décrivez-le comme à un ami. Zip retrouve le bon papier.</div>
-      <div class="suggest">${['Retrouve mon ordonnance du docteur Philippe', 'La facture de mon canapé', 'Mon avis d’imposition', 'Qu’est-ce qui est sous garantie ?', 'Mon billet de train pour Paris'].map(s => `<button data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>`}</div>
-    <div class="composer"><form id="cf"><input id="ci" placeholder="Posez votre question…" aria-label="Votre question pour Zip" autocomplete="off"><button aria-label="Envoyer la question">${ic('send', 2.2)}</button></form></div></div>`);
+  const total = Object.values(ME.counts).reduce((a, b) => a + b, 0);
+  return shell('zip', `${topbar(`<h1 class="ttl chat-t"><span aria-hidden="true">${ic('sparkle', 1.9)}</span>Ask Zip</h1>`)}
+    <div class="msgs" id="msgs" aria-live="polite">${CHAT.length ? CHAT.map(msgHTML).join('') : `<div class="msg bot"><span class="zav" aria-hidden="true">${ic('sparkle', 1.8)}</span><div class="bub"><div class="txt">Salut ${esc(ME.name)} ! Je connais tes ${total} documents. Demande-moi n’importe quoi : une facture, une garantie, une date…</div></div></div>`}</div>
+    <div class="composer"><form id="cf"><input id="ci" placeholder="Pose ta question…" aria-label="Ta question pour Zip" autocomplete="off" enterkeyhint="send"><button class="send" aria-label="Envoyer la question">${ic('send', 2.4)}</button></form>
+      <div class="sugg">${[['Trouve-moi…', 'Trouve-moi la facture de mon canapé'], ['Montre-moi…', 'Montre-moi mes documents santé'], ['Où est…', 'Où est mon avis d’imposition ?'], ['Garanties', 'Qu’est-ce qui est encore sous garantie ?']].map(([l, q]) => `<button type="button" data-q="${esc(q)}">${esc(l)}</button>`).join('')}</div></div>`, {nav: false, cls: 'chatpage'});
 }
 async function ask(q) {
   if (!q.trim()) return;
-  if (!CHAT.length) $('#msgs').innerHTML = ''; 
   CHAT.push({me: true, text: q}); $('#msgs').insertAdjacentHTML('beforeend', msgHTML({me: true, text: q}) + msgHTML({typing: true}));
-  $('#zst').innerHTML = 'Je lis vos documents…'; const slow = setTimeout(() => { const z = $('#zst'); if (z) z.innerHTML = 'Je rédige la réponse…'; }, 2500);
   window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
-  const [r] = await Promise.all([api('/api/chat', {method:'POST', body: JSON.stringify({message: q})}), new Promise(s => setTimeout(s, 650))]);
-  clearTimeout(slow); const m = {text: r.reply, docs: r.docs, steps: r.steps}; CHAT.push(m); sessionStorage.zipChat = JSON.stringify(CHAT.slice(-30));
-  $('#msgs .typing').parentElement.outerHTML = msgHTML(m);
-  $('#zst').innerHTML = `${r.docs.length ? r.docs.length + ' résultat' + (r.docs.length > 1 ? 's' : '') : 'Prêt'}`;
+  const [r] = await Promise.all([api('/api/chat', {method:'POST', body: JSON.stringify({message: q})}), new Promise(s => setTimeout(s, 550))]);
+  const m = {text: r.reply, docs: r.docs, steps: r.steps}; CHAT.push(m); sessionStorage.zipChat = JSON.stringify(CHAT.slice(-30));
+  $('#msgs .typing').closest('.msg').outerHTML = msgHTML(m);
   window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
 }
 function afterZip() {
   $('#cf').onsubmit = e => { e.preventDefault(); const v = $('#ci').value; $('#ci').value = ''; ask(v); };
-  document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => ask(b.dataset.q));
+  document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const ci = $('#ci'); ci.value = b.dataset.q; ci.focus(); });
   window.scrollTo(0, document.body.scrollHeight);
-  if (window.__pendingAsk) { const q = window.__pendingAsk; window.__pendingAsk = null; ask(q); }
 }
 
+// ---------- 9. profile / settings ----------
 function vSettings() {
+  return shell('settings', `
+    <header class="prof"><span class="pav" aria-hidden="true">${esc(ME.name[0])}</span><div><h1>${esc(ME.name)}</h1><p>${esc(ME.inbox)}</p></div><span class="sp"></span><a class="rbtn" href="#/prefs" aria-label="Paramètres">${ic('gear', 2)}</a></header>
+    <button class="zplus" id="zplus"><span class="spk" aria-hidden="true">${ic('sparkle', 1.8)}</span><span class="tx"><b>Zip+ <span class="soon">Bientôt</span></b><small>Passe à la version premium et débloque toutes les fonctionnalités.</small></span>${ic('chev', 2.4)}</button>
+    <nav class="menu" aria-label="Menu du compte">
+      <a class="mrow" href="#/browse">${ic('file')}<span>Mes documents</span>${ic('chev', 2.2)}</a>
+      <a class="mrow" href="#/cats">${ic('folder')}<span>Catégories</span>${ic('chev', 2.2)}</a>
+      <a class="mrow" href="#/zip">${ic('sparkle')}<span>Ask Zip</span>${ic('chev', 2.2)}</a>
+      <a class="mrow" href="#/prefs">${ic('gear')}<span>Paramètres</span>${ic('chev', 2.2)}</a>
+      <a class="mrow" href="#/help">${ic('help')}<span>Aide & support</span>${ic('chev', 2.2)}</a></nav>
+    <div class="bye" aria-hidden="true">${mimg('Logement', 'bob', 110).replace('m/logement', 'm/hero')}<span class="hand">À bientôt<br>sur Zip ! <i>♡</i></span></div>`);
+}
+function afterSettings() { $('#zplus').onclick = () => toast('Zip+ arrive bientôt'); }
+function vPrefs() {
   const dark = document.documentElement.dataset.theme === 'dark';
-  return shell('settings', `<h1 class="big">Réglages</h1>
-    <ul class="setlist" role="list">
-      <li><label class="setrow"><span>${ic('moon', 2)}<b>Mode sombre</b></span><input type="checkbox" role="switch" id="dk" ${dark ? 'checked' : ''} class="sw"></label></li>
-      <li><a class="setrow" href="#/inbox"><span>${ic('mail', 2)}<b>Adresse e-mail Zip</b></span><span class="ct">Bientôt ${ic('chev', 2)}</span></a></li>
-      <li><button class="setrow" id="lo"><span>${ic('out', 2)}<b>Réinitialiser la démo</b></span></button></li>
-    </ul>
-    <p class="demo-note">Démo : vos documents restent uniquement sur cet appareil (aucun envoi vers un serveur).</p>`);
+  return shell('settings', `${topbar('<h1 class="ttl">Paramètres</h1>')}
+    <div class="menu">
+      <label class="mrow">${ic('moon')}<span>Mode sombre</span><input type="checkbox" role="switch" id="dk" ${dark ? 'checked' : ''} class="sw"></label>
+      <a class="mrow" href="#/inbox">${ic('mail')}<span>Adresse e-mail Zip <span class="soon">Bientôt</span></span>${ic('chev', 2.2)}</a>
+      <a class="mrow" href="#/welcome">${ic('home')}<span>Revoir l’écran d’accueil</span>${ic('chev', 2.2)}</a>
+      <button class="mrow red" id="lo">${ic('out')}<span>Réinitialiser la démo</span>${ic('chev', 2.2)}</button></div>
+    <p class="note">Démo : tes documents restent uniquement sur cet appareil (aucun envoi vers un serveur). N’importe pas de vrais documents sensibles.</p>`);
 }
-function afterSettings() { $('#dk').onchange = e => { document.documentElement.dataset.theme = localStorage.zipTheme = e.target.checked ? 'dark' : 'light'; }; }
+function afterPrefs() { $('#dk').onchange = e => { document.documentElement.dataset.theme = localStorage.zipTheme = e.target.checked ? 'dark' : 'light'; }; $('#lo').onclick = resetDemo; }
+function vCats() {
+  const cats = ME.categories.filter(c => c !== 'Autres' || ME.counts[c]);
+  return shell('docs', `${topbar('<h1 class="ttl">Catégories</h1>')}<div class="menu">${cats.map(c => catRow(c)).join('')}</div>`);
+}
+const catRow = (c, input = false) => { const n = ME.counts[c] || 0, [t] = tint(c);
+  const inner = `<span class="cav" style="--t:${t}" aria-hidden="true">${mimg(c, '', 52)}</span><b>${esc(c)}</b><small>${ndocs(n)}</small>${ic('chev', 2.2)}`;
+  return input ? `<label class="crow">${inner}<input type="file" multiple accept="image/*,application/pdf" class="fi2 vh" data-cat="${esc(c)}" aria-label="Ajouter un document dans ${esc(c)}"></label>` : `<a class="crow" href="#/cat/${encodeURIComponent(c)}">${inner}</a>`; };
+function vHelp() {
+  return shell('settings', `${topbar('<h1 class="ttl">Aide & support</h1>')}
+    <div class="menu text"><div><b>Comment ajouter un document ?</b><p>Touche <b>+</b> : « Scanner » prend une photo (recadrage et nettoyage automatiques), « Importer » prend un PDF ou une image.</p></div>
+    <div><b>Comment retrouver un document ?</b><p>Utilise la recherche de l’accueil ou demande à <b>Ask Zip</b> : « la facture de mon canapé », « mon avis d’imposition »…</p></div>
+    <div><b>Où sont mes données ?</b><p>Dans cette démo, uniquement sur cet appareil (stockage local du navigateur).</p></div></div>`);
+}
 function vInbox() {
-  return shell('mail', `
-    <div class="eyebrow">Réception automatique</div><h1 class="big">Votre adresse Zip</h1>
-    <p class="muted" style="font-size:15px;line-height:1.5;max-width:560px">Donnez-la en magasin ou utilisez-la pour vos commandes en ligne. Chaque facture ou reçu envoyé ici est lu, classé et rangé — sans rien faire.</p>
-    <div class="mailcard"><div class="eyebrow">Votre adresse personnelle <span class="chip" style="margin-left:6px">Bientôt disponible</span></div><div class="addr">${esc(ME.inbox)}</div>
-      <div class="actions"><button class="btn primary" id="cp">${ic('copy')}Copier</button></div></div>
-    <div class="how glass" style="padding:18px;border-radius:22px">
-      <div><span class="n">1</span><span><b>En magasin</b> — « Vous voulez la facture par e-mail ? » Donnez votre adresse Zip.</span></div>
-      <div><span class="n">2</span><span><b>Zip la reçoit</b> — pièces jointes PDF, photos, ou reçu dans le corps du mail.</span></div>
-      <div><span class="n">3</span><span><b>C’est rangé</b> — catégorie, montant, garantie : tout est extrait.</span></div>
-    </div>
-    ${ME.dev ? `<h2 class="sec">Tester la réception <span class="chip">Outil de dev</span></h2>
-    <form id="sim" class="glass" style="padding:6px 18px 18px;border-radius:22px">
-      <div class="field"><label>De</label><input name="sender" value="factures@maison-lumiere.example"></div>
-      <div class="field"><label>Objet</label><input name="subject" value="Votre facture Maison Lumière"></div>
-      <div class="field"><label>Message</label><textarea name="body" rows="3">Bonjour, veuillez trouver ci-joint votre facture. Merci pour votre achat !</textarea></div>
-      <div class="field"><label>Pièce jointe (PDF ou image)</label><input type="file" name="files" accept="image/*,application/pdf"></div>
-      <button class="btn primary" style="margin-top:16px">${ic('send', 2)}Simuler un e-mail entrant</button>
-    </form>` : `<div class="glass" style="padding:16px 18px;border-radius:20px;margin-top:16px;font-size:13.5px;color:var(--ink2)">Bientôt disponible : dans cette démo, la réception par e-mail n’est pas encore active. En attendant, importez vos documents avec le bouton +.</div>`}`);
+  return shell('settings', `${topbar('<h1 class="ttl">Adresse e-mail Zip</h1>')}
+    <div class="menu text"><div><b>${esc(ME.inbox)} <span class="soon">Bientôt</span></b><p>Donne cette adresse en magasin ou pour tes commandes : chaque facture reçue sera lue, classée et rangée automatiquement. Pas encore active dans cette démo, utilise « Importer » en attendant.</p></div></div>
+    <button class="btn primary wide" id="cp">${ic('copy', 2)}Copier l’adresse</button>`);
 }
-function afterInbox() {
-  $('#cp').onclick = () => { navigator.clipboard?.writeText(ME.inbox); toast('Adresse copiée'); };
-  if ($('#sim')) $('#sim').onsubmit = async e => {
-    e.preventDefault(); const fd = new FormData(e.target);
-    openProcessing('E-mail reçu');
-    try { const r = await api('/api/dev/simulate-email', {method:'POST', body: fd}); await refreshMe(); showResult(r.docs); }
-    catch (err) { closeSheet(); toast(err.message); }
-  };
-}
+function afterInbox() { $('#cp').onclick = () => { navigator.clipboard?.writeText(ME.inbox); toast('Adresse copiée'); }; }
 
-// ---------- add / share sheet ----------
-function sheet(html) { $('#sheet-root').innerHTML = `<div class="scrim" id="scrim"></div><div class="sheet" role="dialog"><div class="grab"></div>${html}</div>`; $('#scrim').onclick = closeSheet; }
+// ---------- 4. add sheet ----------
+function sheet(html, after) {
+  $('#sheet-root').innerHTML = `<div class="scrim" id="scrim"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shh">${html}</div>`;
+  $('#scrim').onclick = closeSheet; const x = $('#shx'); if (x) x.onclick = closeSheet; wire(); after && after(); const f = $('.sheet button, .sheet a, .sheet label'); f && f.focus?.({preventScroll: true});
+}
 function closeSheet() { $('#sheet-root').innerHTML = ''; }
-function openAdd() {
-  sheet(`<h3 id="shh">Ajouter un document</h3><p class="muted">Zip lit, classe et range pour vous.</p>
-    <div class="addlist">
-      <label class="addopt">${ic('camera', 2)}<span><b>Scanner</b><small>Photographier un papier : recadrage et nettoyage automatiques</small></span><input type="file" accept="image/*" capture="environment" class="fi2 vh" aria-label="Scanner avec l’appareil photo"></label>
-      <label class="addopt" id="drop">${ic('up', 2)}<span><b>Importer</b><small>Un PDF ou une image depuis vos fichiers</small></span><input type="file" id="fi" multiple accept="image/*,application/pdf" class="vh" aria-label="Importer un fichier"></label>
-      <div class="addopt off" aria-disabled="true">${ic('mail', 2)}<span><b>Par e-mail <span class="soon">Bientôt</span></b><small>Transférez vos factures à <span class="mono">${esc(ME.inbox)}</span></small></span></div>
-    </div>
-    <button class="btn ghost wide" id="shc">Annuler</button>`);
-  $('#shc').onclick = closeSheet; $('.sheet').setAttribute('aria-labelledby', 'shh');
-  const go = files => files.length && uploadFiles(files);
-  $('#fi').onchange = e => go(e.target.files); document.querySelectorAll('.fi2').forEach(i => i.onchange = e => go(e.target.files));
+function openAdd(cat) {
+  if (cat) { const i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.accept = 'image/*,application/pdf'; i.className = 'vh'; i.id = 'fi'; i.onchange = () => i.files.length && uploadFiles(i.files, cat); document.body.appendChild(i); setTimeout(() => i.remove(), 60000); i.click(); return; }
+  const cats = ME.categories.filter(c => c !== 'Autres' || ME.counts[c]);
+  sheet(`<div class="shead"><button class="rbtn ghost" id="shx2" aria-label="Retour">${ic('back', 2.2)}</button><h3 id="shh">Ajouter un document</h3><button class="rbtn ghost" id="shx" aria-label="Fermer">${ic('close', 2.2)}</button></div>
+    <div class="tiles">
+      <label class="tile">${ic('camera', 1.8)}<b>Scanner</b><small>Prendre une photo</small><input type="file" accept="image/*" capture="environment" class="fi2 vh" aria-label="Scanner : prendre une photo"></label>
+      <label class="tile" id="drop">${ic('up', 1.8)}<b>Importer</b><small>PDF ou image</small><input type="file" id="fi" multiple accept="image/*,application/pdf" class="fi2 vh" aria-label="Importer : PDF ou image"></label></div>
+    <h4>Ou depuis une catégorie</h4><div class="menu clist">${cats.map(c => catRow(c, true)).join('')}</div>
+    <p class="note">${ic('mail', 2)} Par e-mail : <b>${esc(ME.inbox)}</b> <span class="soon">Bientôt</span></p>`, () => { $('#shx2').onclick = closeSheet; });
   const d = $('#drop');
   d.ondragover = e => { e.preventDefault(); d.classList.add('over'); }; d.ondragleave = () => d.classList.remove('over');
-  d.ondrop = e => { e.preventDefault(); go(e.dataTransfer.files); };
+  d.ondrop = e => { e.preventDefault(); e.dataTransfer.files.length && uploadFiles(e.dataTransfer.files); };
 }
-function openProcessing(label = 'Analyse en cours') {
-  sheet(`<div class="proc"><div class="orb lg busy"></div><h3 style="margin-top:14px">${label}</h3><div class="muted" style="font-size:14px" id="pmsg">Zip lit votre document…</div>
-    <div class="pbar"><i id="pbar"></i></div><div class="steps" id="ps"></div></div>`);
+
+// ---------- processing + 8. success ----------
+function openProcessing() {
+  $('#sheet-root').innerHTML = `<div class="overlay proc" role="dialog" aria-modal="true" aria-labelledby="shh"><div class="pw">
+    <img class="mz bob" src="m/hero.webp" alt="" width="170"><h3 id="shh">Zip range ton document…</h3>
+    <p id="pmsg" role="status">Lecture du document…</p><div class="pbar"><i id="pbar"></i></div><div class="steps" id="ps"></div></div></div>`;
 }
 let lastStep = '';
 function onProgress(msg, f) {
   const m = $('#pmsg'); if (m) m.textContent = msg; const b = $('#pbar'); if (b && f != null) b.style.width = Math.round(f * 100) + '%';
   const key = msg.replace(/[\d %…]+$/, '');
-  if (key !== lastStep && !/\d+ %/.test(msg)) { lastStep = key; const ps = $('#ps'); ps && ps.insertAdjacentHTML('beforeend', `<div>${ic('check', 2.4)}${esc(msg.replace(/…$/, ''))}</div>`); }
+  if (key !== lastStep && !/\d+ %/.test(msg)) { lastStep = key; const ps = $('#ps'); ps && ps.insertAdjacentHTML('beforeend', `<div>${ic('check', 2.6)}${esc(msg.replace(/…$/, ''))}</div>`); }
 }
-async function uploadFiles(files) {
+async function uploadFiles(files, cat) {
   const fd = new FormData(); [...files].forEach(f => fd.append('files', f));
   openProcessing();
   try {
-    const [r] = await Promise.all([api('/api/upload', {method:'POST', body: fd, progress: onProgress}), new Promise(s => setTimeout(s, 900))]);
+    let [r] = await Promise.all([api('/api/upload', {method:'POST', body: fd, progress: onProgress}), new Promise(s => setTimeout(s, 700))]);
+    if (cat) r = {docs: await Promise.all(r.docs.map(d => d.category === cat ? d : api('/api/docs/' + d.id, {method:'PATCH', body: JSON.stringify({category: cat})})))};
     await refreshMe(); showResult(r.docs);
   } catch (e) { closeSheet(); toast(e.message); }
 }
+const lowerTitle = t => String(t || "document").split(" — ")[0];
 function showResult(docs) {
-  sheet(`<div class="proc" style="padding-top:8px"><div style="width:56px;height:56px;border-radius:50%;background:rgba(52,211,153,.15);color:#10b981;display:grid;place-items:center">${ic('check', 2.4).replace('<svg', '<svg width="28" height="28"')}</div>
-    <h3 style="margin-top:8px">${docs.length > 1 ? docs.length + ' documents rangés' : 'Rangé dans ' + esc(docs[0]?.category || '')}</h3><div class="muted" style="font-size:14px">${!docs.length ? 'Aucun document trouvé.' : docs.some(d => d.status === 'enriching') ? '<span class="orb sm busy" style="display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:6px"></span>Le modèle IA local affine l’analyse…' : 'Zip a tout extrait automatiquement.'}</div></div>
-    <div class="list" style="margin-top:16px">${docs.map(row).join('')}</div>
-    <button class="btn primary" style="width:100%;margin-top:16px" id="okb">Terminé</button>`);
-  $('#okb').onclick = () => { closeSheet(); route(); };
-  if (docs.some(d => d.status === 'enriching')) setTimeout(async () => {
-    if (!$('#okb')) return;
-    const fresh = await Promise.all(docs.map(d => api('/api/docs/' + d.id)));
-    const changed = fresh.some((f, i) => f.status !== docs[i].status);
-    if (changed) { await refreshMe(); showResult(fresh); } else if ($('#okb')) showResult.poll = setTimeout(() => showResult(fresh), 0);
-  }, 2500);
-  document.querySelectorAll('.sheet .row').forEach(a => a.addEventListener('click', closeSheet));
+  const d = docs[0] || {}, c = d.category || 'Autres', [t, dk] = tint(c), many = docs.length > 1;
+  const art = d.thumb ? `<span class="flydoc" style="background-image:url(${d.thumb})"></span>` : `<span class="flydoc"></span>`;
+  $('#sheet-root').innerHTML = `<div class="overlay success" role="dialog" aria-modal="true" aria-labelledby="shh" style="--t:${t};--d:${dk}"><div class="sw2">
+    <div class="sart" aria-hidden="true">${art}<img class="mz smasc" src="m/success.webp" alt="" width="250"><span class="okb">${ic('check', 3)}</span></div>
+    <h2 id="shh">${many ? docs.length + ' documents ajoutés !' : 'Document ajouté !'}</h2>
+    <p>${many ? `Tes documents ont bien été rangés automatiquement.` : `Ton document « ${esc(lowerTitle(d.title))} » a bien été enregistré dans <b>${esc(c)}</b>.`}</p>
+    <button class="btn primary big" id="okb">Voir mes documents</button>
+    <button class="btn text" id="okd">${many ? 'Fermer' : 'Ouvrir ce document'}</button></div></div>`;
+  $('#okb').onclick = () => { closeSheet(); const h = '#/cat/' + encodeURIComponent(c); location.hash === h ? route() : (location.hash = h); };
+  $('#okd').onclick = () => { closeSheet(); if (many || !d.id) return route(); location.hash = '#/doc/' + d.id; };
+  $('#okb').focus({preventScroll: true});
 }
 
 // ---------- router ----------
 async function refreshMe() { ME = await api('/api/me'); }
+let prevHash = '';
 async function route() {
   closeSheet();
-  const h0 = location.hash;
   const h = decodeURIComponent(location.hash.slice(1) || '/'); const [, a, b] = h.split('/');
-  let html, after;
+  if (!a && !localStorage.zipWelcomed) return renderView(vWelcome(), afterWelcome, 'welcome');
+  let html, after, kind = a || 'home';
   try {
-    if (!a) html = await vHome();
-    else if (a === 'browse') html = await vBrowse(new URLSearchParams(location.search).get('q') || '');
-    else if (a === 'cat') html = await vCat(b);
+    if (!a) { html = await vHome(); after = afterHome; }
+    else if (a === 'welcome') { html = vWelcome(); after = afterWelcome; }
+    else if (a === 'browse') { html = await vBrowse(); after = afterBrowse; }
+    else if (a === 'cat') { html = await vCat(b); after = () => afterCat(b); }
     else if (a === 'doc') { html = await vDoc(b); after = () => afterDoc(b); }
     else if (a === 'zip') { html = vZip(); after = afterZip; }
-    else if (a === 'inbox') { html = vInbox(); after = afterInbox; }
     else if (a === 'settings') { html = vSettings(); after = afterSettings; }
-    else html = await vHome();
-  } catch (e) { if (e.message === 'auth') return; html = shell('', empty('Oups', esc(e.message), false)); }
-  $('#app').innerHTML = html; wire(); after && after();
-  const sq = $('#sq'); if (sq) { sq.oninput = debounce(async () => { const {docs} = await api('/api/docs?q=' + encodeURIComponent(sq.value)); const g = sq.closest('main').querySelector('.grid,.empty-st'); const nh = docs.length ? `<div class="grid">${docs.map(card).join('')}</div>` : (sq.value ? empty('Aucun résultat', 'Essayez un autre mot, ou demandez à Zip.', false) : ''); if (g) g.outerHTML = nh || '<div class="grid"></div>'; }, 220); }
-  const st = $('#shareTile'); if (st) st.onclick = () => openShareInfo();
-  const rst = $('#rst'); if (rst) rst.onclick = resetDemo;
-  if (!a || a !== 'zip') window.scrollTo(0, 0);
-  clearTimeout(route.poll);
-  if (document.querySelector('.chip.ai')) route.poll = setTimeout(async () => { if (!$('#sheet-root').innerHTML && location.hash === h0) { const y = scrollY; await refreshMe(); await route(); scrollTo(0, y); } }, 3000);
+    else if (a === 'prefs') { html = vPrefs(); after = afterPrefs; }
+    else if (a === 'cats') html = vCats();
+    else if (a === 'help') html = vHelp();
+    else if (a === 'inbox') { html = vInbox(); after = afterInbox; }
+    else { html = await vHome(); after = afterHome; }
+  } catch (e) { html = shell('', empty('Oups', esc(e.message), false)); }
+  renderView(html, after, kind);
 }
-function openShareInfo() {
-  const can = !!navigator.share;
-  sheet(`<h3>Partager vers Zip</h3><div class="muted" style="font-size:14.5px">Envoyez un PDF ou une photo depuis Mail, Photos, Fichiers, WhatsApp…</div>
-    <div class="how" style="margin-top:18px">
-      <div><span class="n">1</span><span><b>Installez Zip</b> — menu du navigateur → « Ajouter à l’écran d’accueil ».</span></div>
-      <div><span class="n">2</span><span><b>Dans n’importe quelle app</b> — touchez « Partager ».</span></div>
-      <div><span class="n">3</span><span><b>Choisissez Zip</b> — le document est classé en quelques secondes.</span></div></div>
-    <div class="muted" style="font-size:12.5px;margin-top:14px">Dans cette démo hébergée en statique, le partage depuis une autre app n’est pas encore actif. Utilisez « Importer » : photo, fichier ou appareil photo.</div>
-    <button class="btn primary" style="width:100%;margin-top:16px" data-add2>${ic('up', 2)}Importer un fichier maintenant</button>`);
-  $('[data-add2]').onclick = openAdd;
+function renderView(html, after, kind) {
+  const app = $('#app'); app.innerHTML = html; app.dataset.view = kind;
+  wire(); after && after();
+  if (kind !== 'zip') window.scrollTo(0, 0);
 }
 const debounce = (f, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
 addEventListener('hashchange', route);
-addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); location.hash = '#/zip'; } });
-
+addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); location.hash = '#/zip'; } if (e.key === 'Escape') closeSheet(); });
 async function resetDemo() {
-  if (!confirm('Réinitialiser la démo ? Les documents importés sur ce téléphone seront effacés.')) return;
+  if (!confirm('Réinitialiser la démo ? Les documents importés sur cet appareil seront effacés.')) return;
   closeSheet(); await Store.reset(); sessionStorage.removeItem('zipChat'); CHAT.length = 0; await refreshMe(); toast('Démo réinitialisée'); location.hash = '#/'; route();
 }
 async function boot() {
-  $('#app').innerHTML = `<div class="auth"><div style="text-align:center"><div class="orb lg busy" style="margin:0 auto"></div><div class="muted" style="margin-top:18px;font-size:14px">Préparation de votre espace…</div></div></div>`;
-  try { await Store.ready(); await refreshMe(); } catch (e) { $('#app').innerHTML = `<div class="auth"><div class="box glass">${empty('Stockage indisponible', 'Ce navigateur bloque le stockage local (navigation privée ?). ' + esc(e.message), false)}</div></div>`; return; }
+  $('#app').innerHTML = `<div class="boot"><div class="logo xl">Zip</div><p>Préparation de ton espace…</p></div>`;
+  try { await Store.ready(); await refreshMe(); } catch (e) { $('#app').innerHTML = `<div class="boot">${empty('Stockage indisponible', 'Ce navigateur bloque le stockage local (navigation privée ?). ' + esc(e.message), false)}</div>`; return; }
   route();
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
