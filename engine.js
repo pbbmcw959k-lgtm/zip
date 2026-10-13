@@ -1,10 +1,11 @@
 // Zip on-device engine: French keyword classifier + field extraction + keyword assistant (port of the server's local engine).
 'use strict';
 const Z = (() => {
-const CATEGORIES = ["Santé","Factures & achats","Logement","Banque & impôts","Travail","Administratif","Voyages","Véhicule","Assurance","Autres"];
+const CATEGORIES = ["Santé","Sport","Factures & achats","Administratif","Logement","Banque & impôts","Travail","Voyages","Véhicule","Assurance","Autres"];
 const norm = s => String(s ?? '').replace(/€/g, ' eur').replace(/[\u202f\u00a0]/g, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x00-\x7f]/g, '').toLowerCase();
 const RULES = {
  "Santé": ["ordonnance","docteur","dr ","medecin","pharmacie","patient","posologie","cpam","mutuelle","analyse","laboratoire","comprime","consultation","kine","dentiste","remboursement"],
+ "Sport": ["licence","club","salle de sport","fitness","certificat medical sport","marathon","inscription course","piscine","natation","running","trail","athletisme","sportive","sportif","musculation","yoga","federation","semi-marathon","dossard","coach"],
  "Factures & achats": ["facture","ticket de caisse","achat","commande","garantie","total ttc","tva","magasin","article","livraison","canape","meuble","quantite","prix unitaire"],
  "Logement": ["quittance","loyer","bail","proprietaire","locataire","charges locatives","edf","electricite","kwh","energie","consommation","abonnement","logement","gaz","eau","syndic","appartement"],
  "Banque & impôts": ["impot","avis d'imposition","dgfip","revenu fiscal","releve de compte","iban","banque","credit","taxe fonciere","prelevement a la source","virement"],
@@ -14,7 +15,7 @@ const RULES = {
  "Véhicule": ["carte grise","certificat d'immatriculation","controle technique","vidange","garage","immatriculation","pneus","amende"],
  "Assurance": ["assurance","contrat d'assurance","police n","sinistre","franchise","cotisation","assure","habitation","attestation d'assurance"],
 };
-const TITLES = [["ordonnance","Ordonnance"],["avis d'imposition","Avis d'imposition"],["quittance","Quittance de loyer"],["bulletin de paie","Bulletin de paie"],["releve de remboursements","Relevé de remboursements"],
+const TITLES = [["licence sportive","Licence sportive"],["abonnement fitness","Abonnement salle de sport"],["ordonnance","Ordonnance"],["avis d'imposition","Avis d'imposition"],["quittance","Quittance de loyer"],["bulletin de paie","Bulletin de paie"],["releve de remboursements","Relevé de remboursements"],
  ["billet","Billet de train"],["carte d'embarquement","Carte d'embarquement"],["attestation d'assurance","Attestation d'assurance"],["controle technique","Contrôle technique"],
  ["ticket de caisse","Ticket de caisse"],["facture","Facture"],["releve de compte","Relevé de compte"]];
 const MONTHS = ["janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre","octobre","novembre","decembre"];
@@ -58,7 +59,7 @@ function extract(text, filename = '', hint = '') {
   if (mw && date && category === 'Factures & achats') warranty_end = addMonths(date, mw[2].startsWith('an') ? +mw[1] * 12 : +mw[1]);
   const art = text.match(/\b(canap[eé][\w ]{0,30}|table[\w ]{0,20}|lit [\w ]{0,20}|matelas[\w ]{0,20}|lave-linge[\w +]{0,20}|r[eé]frig[eé]rateur[\w ]{0,20}|t[eé]l[eé]vis(?:eur|ion)[\w ]{0,20}|ordinateur[\w ]{0,20})/i);
   if (art && category === 'Factures & achats') { entities.article = art[1].trim(); title = `Facture — ${entities.article}`; }
-  else if (['Ticket de caisse','Billet de train','Facture','Contrôle technique'].includes(title) && issuer) title = `${title} — ${issuer}`;
+  else if (['Ticket de caisse','Billet de train','Facture','Contrôle technique','Licence sportive','Abonnement salle de sport'].includes(title) && issuer) title = `${title} — ${issuer}`;
   let summary = title + (issuer && !norm(title).includes(norm(issuer)) ? ` émis par ${issuer}` : '') + (date ? `, daté du ${date.split('-').reverse().join('/')}` : '') + (amount != null ? `, montant ${eur(amount)}` : '') + '.';
   return { category, title, issuer, date, amount, currency: amount != null ? 'EUR' : null, entities, warranty_end, summary, confidence: Math.round(Math.min(0.95, 0.4 + 0.08 * best) * 100) / 100 };
 }
@@ -69,7 +70,7 @@ const SYN = {"ordonnance":["ordonnance","prescription"],"docteur":["dr","docteur
   "meuble":["meuble","meubles","mobilier","canape","table","chaise","lit","matelas"],"meubles":["meuble","meubles","mobilier","canape","table","chaise","lit","matelas"],
   "impots":["impot","imposition","dgfip","fiscal"],"impot":["impot","imposition","dgfip","fiscal"],"loyer":["loyer","quittance"],"train":["train","sncf","tgv","billet"],
   "facture":["facture","ticket"],"medicaments":["medicament","pharmacie","comprime"],"electricite":["electricite","energie","kwh"],"salaire":["salaire","paie"],
-  "voiture":["voiture","vehicule","controle technique","clio"],"sang":["sang","analyse","laboratoire"],"mutuelle":["mutuelle","remboursement","remboursements"]};
+  "voiture":["voiture","vehicule","controle technique","clio"],"sang":["sang","analyse","laboratoire"],"mutuelle":["mutuelle","remboursement","remboursements"],"sport":["sport","sportive","licence","fitness","salle","club","marathon","running"],"gym":["salle de sport","fitness","musculation"],"course":["course","marathon","running","dossard"]};
 const STOP = new Set("combien depense depenses paye payer total jusqu quand garanti garantie est ce qui que quoi le la les de du des un une mon ma mes ton ta tes retrouve trouve moi montre cherche donne ou quel quelle pour avec et a au aux en sur dans s il te plait stp j ai je veux voir dernier derniere peux tu m sous encore achats achat qu".split(' '));
 const terms = q => (norm(q).replace(/'/g, ' ').match(/[a-z0-9]+/g) || []).filter(w => !STOP.has(w) && w.length > 1);
 const variants = t => { const s = new Set([t]); for (const [k, v] of Object.entries(SYN)) if (t === k || v.includes(t)) { s.add(k); v.forEach(x => s.add(x)); } return [...s]; };

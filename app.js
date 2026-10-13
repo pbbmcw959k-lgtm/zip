@@ -17,6 +17,7 @@ const I = {
   moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>', trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   out:'<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/>', chev:'<path d="m9 6 6 6-6 6"/>',
   shield:'<path d="M12 3 5 6v6c0 4.5 3 7.6 7 9 4-1.4 7-4.5 7-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  'Sport':'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c2.5 2.5 2.5 14.5 0 17M3.5 12c2.5-2.5 14.5-2.5 17 0"/>',
   'Santé':'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
   'Factures & achats':'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
   'Logement':'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
@@ -29,7 +30,7 @@ const I = {
   'Autres':'<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>',
 };
 const ic = (n, w = 1.8) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${I[n] || I.file}</svg>`;
-const COL = {'Santé':'#ff5f8f','Factures & achats':'#f59e0b','Logement':'#10b981','Banque & impôts':'#3b82f6','Travail':'#64748b','Administratif':'#8b5cf6','Voyages':'#06b6d4','Véhicule':'#ef4444','Assurance':'#14b8a6','Autres':'#a1a1aa'};
+const COL = {'Santé':'#f0709c','Sport':'#f4874b','Factures & achats':'#e0a52a','Administratif':'#8b6cf0','Logement':'#3fb886','Banque & impôts':'#4f8be8','Travail':'#7b8aa3','Voyages':'#2fb4d0','Véhicule':'#ea6b5c','Assurance':'#2fae98','Autres':'#a1a1aa'};
 const SRC = {upload:'Importé', partage:'Partagé', 'e-mail':'Reçu par e-mail'};
 const MONTHS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const fdate = d => { if (!d) return ''; const x = new Date(d + 'T12:00'); return `${x.getDate()} ${MONTHS[x.getMonth()]} ${x.getFullYear()}`; };
@@ -87,13 +88,7 @@ function shell(active, inner) {
       </div>
     </aside>
     <main class="main" id="main">${inner}</main>
-    <nav class="tabbar">
-      <a href="#/" class="${active === 'home' ? 'on' : ''}">${ic('home')}Accueil</a>
-      <a href="#/browse" class="${active === 'grid' || String(active).startsWith('cat:') ? 'on' : ''}">${ic('grid')}Parcourir</a>
-      <button class="plus" data-add aria-label="Ajouter">${ic('plus', 2.4)}</button>
-      <a href="#/zip" class="${active === 'spark' ? 'on' : ''}">${ic('spark')}Zip</a>
-      <a href="#/inbox" class="${active === 'mail' ? 'on' : ''}">${ic('mail')}E-mail</a>
-    </nav></div>`;
+    <button class="fab" data-add aria-label="Importer un document">${ic('plus', 2.4)}</button></div>`;
 }
 function wire() {
   document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => openAdd());
@@ -116,24 +111,13 @@ const greet = () => { const h = new Date().getHours(); return h < 6 ? 'Bonne nui
 
 // ---------- views ----------
 async function vHome() {
-  const {docs} = await api('/api/docs?limit=6');
-  const total = Object.values(ME.counts).reduce((a, b) => a + b, 0);
   const cats = ME.categories.filter(c => c !== 'Autres' || ME.counts[c]);
   return shell('home', `
-    <div class="topbar"><div><div class="eyebrow">${new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})}</div><h1 class="big">${greet()}, ${esc(ME.name)}</h1></div>
-      <a class="avatar-me" href="#/inbox">${esc(ME.name[0].toUpperCase())}</a></div>
-    <div class="demo-banner">Démo · vos données restent uniquement sur ce téléphone. N’importez pas de vrais documents sensibles. <button id="rst">Réinitialiser</button></div>
-    <div class="agent"><div class="orb"></div><div class="st"><div><b>Zip veille sur vos papiers</b><span style="display:flex;align-items:center;gap:6px"><span class="dot"></span>${total} document${total > 1 ? 's' : ''} rangé${total > 1 ? 's' : ''} · tout est à jour</span></div></div></div>
-    <button class="ask" onclick="location.hash='#/zip'">${ic('spark')}<span>« La facture de mon canapé… »</span><span class="kbd">⌘K</span></button>
-    <div class="intake">
-      <button class="tile glass" data-add><div class="ic" style="background:linear-gradient(135deg,#7c6cff,#a78bfa)">${ic('up', 2)}</div><b>Importer</b><span>Photo ou PDF</span></button>
-      <button class="tile glass" id="shareTile"><div class="ic" style="background:linear-gradient(135deg,#ff7ac6,#fb7185)">${ic('share', 2)}</div><b>Partager</b><span>Depuis une autre app</span></button>
-      <a class="tile glass" href="#/inbox"><div class="ic" style="background:linear-gradient(135deg,#38bdf8,#22d3ee)">${ic('mail', 2)}</div><b>Par e-mail</b><span>Votre adresse Zip</span></a>
-    </div>
-    <h2 class="sec">Catégories <a href="#/browse">Tout voir</a></h2>
-    <div class="cats">${cats.map((c, i) => `<a class="cat glass ${ME.counts[c] ? '' : 'empty'}" href="#/cat/${encodeURIComponent(c)}" style="--c:${COL[c]};animation:rise .5s ${i * 30}ms both"><div class="ic">${ic(c, 2)}</div><div><b>${esc(c)}</b><small>${ME.counts[c] || 0} document${(ME.counts[c] || 0) > 1 ? 's' : ''}</small></div></a>`).join('')}</div>
-    <h2 class="sec">Récents</h2>
-    ${docs.length ? `<div class="list">${docs.map(row).join('')}</div>` : empty('Votre espace est prêt', 'Importez une photo, partagez un PDF ou transférez un e-mail : Zip le range automatiquement.')}
+    <header class="homebar"><h1 class="wordmark">Zip</h1>
+      <div class="hb-actions"><a class="iconbtn" href="#/zip" aria-label="Rechercher ou demander à Zip">${ic('search', 2)}</a></div></header>
+    <div class="mcats">${cats.map((c, i) => { const n = ME.counts[c] || 0; return `<a class="mcat" href="#/cat/${encodeURIComponent(c)}" style="--c:${COL[c]};--a:${(Mascot.palette[c] || Mascot.palette.Autres || {a:'#eee'}).a};animation-delay:${i * 35}ms">
+      <div class="mimg">${Mascot.svg(c, 112)}</div><b>${esc(c)}</b><small>${n ? n + ' document' + (n > 1 ? 's' : '') : 'Vide'}</small></a>`; }).join('')}</div>
+    <p class="demo-note">Démo · données stockées uniquement sur ce téléphone · n’importez pas de vrais documents sensibles · <button id="rst">Réinitialiser la démo</button></p>
   `);
 }
 async function vBrowse(q = '') {
@@ -149,8 +133,8 @@ async function vCat(c) {
   const {docs} = await api('/api/docs?category=' + encodeURIComponent(c));
   const total = docs.reduce((a, d) => a + (d.amount || 0), 0);
   return shell('cat:' + c, `
-    <div class="topbar"><a class="iconbtn" href="#/browse">${ic('back', 2)}</a><button class="iconbtn" data-add>${ic('plus', 2)}</button></div>
-    <div class="hero" style="--c:${COL[c]}"><div class="ic">${ic(c, 2)}</div><h1>${esc(c)}</h1><p>${docs.length} document${docs.length > 1 ? 's' : ''}${total ? ' · ' + money(total) + ' au total' : ''}</p></div>
+    <div class="topbar"><a class="iconbtn" href="#/">${ic('back', 2)}</a><a class="iconbtn" href="#/zip" aria-label="Rechercher">${ic('search', 2)}</a></div>
+    <div class="chero" style="--c:${COL[c]};--a:${(Mascot.palette[c] || Mascot.palette.Autres || {a:'#eee'}).a}"><div class="mimg">${Mascot.svg(c, 132)}</div><div><h1>${esc(c)}</h1><p>${docs.length} document${docs.length > 1 ? 's' : ''}${total ? ' · ' + money(total) : ''}</p></div></div>
     ${docs.length ? `<div class="grid">${docs.map(card).join('')}</div>` : empty('Aucun document ici', `Dès qu’un document ${c === 'Santé' ? 'médical' : 'de cette catégorie'} arrivera, Zip le rangera ici.`)}
   `);
 }
@@ -166,7 +150,8 @@ async function vDoc(id) {
   return shell('cat:' + d.category, `
     <div class="topbar"><button class="iconbtn" onclick="history.back()">${ic('back', 2)}</button><span class="eyebrow">${SRC[d.source] || ''}</span><a class="iconbtn" href="${d.file}" target="_blank" aria-label="Ouvrir">${ic('ext', 2)}</a></div>
     <div class="detail" style="margin-top:12px">
-      <div class="preview">${d.thumb ? `<img src="${d.thumb}" alt="">` : `<div style="padding:60px;text-align:center" class="muted">${ic('file')}Aperçu indisponible</div>`}<a class="open" href="${d.file}" target="_blank">${ic('ext', 2)}Ouvrir l’original</a></div>
+      <div class="preview">${(d.scan || d.thumb) ? `<img id="pvimg" src="${d.scan || d.thumb}" alt="">` : `<div style="padding:60px;text-align:center" class="muted">${ic('file')}Aperçu indisponible</div>`}
+        ${d.scan ? `<button class="open" id="orig" data-o="${d.file}" data-s="${d.scan}" data-m="${esc(d.mime || '')}">${ic('camera', 2)}Voir l’original</button>${'<span class="scanbadge">Scan nettoyé</span>'}` : `<a class="open" href="${d.file}" target="_blank">${ic('ext', 2)}Ouvrir l’original</a>`}</div>
       <div class="dt" style="display:flex;flex-direction:column;gap:14px">
         <div><span class="chip c" style="--c:${COL[d.category]}">${ic(d.category, 2).replace('<svg', '<svg width="11" height="11" style="vertical-align:-1px;margin-right:4px"')}${esc(d.category)}</span>${d.status === 'enriching' ? ' <span class="chip ai">Analyse IA en cours…</span>' : ''}
         <h1>${esc(d.title)}</h1><div class="muted" style="font-size:14.5px">${esc([d.issuer, fdateLong(d.date)].filter(Boolean).join(' · '))}</div></div>
@@ -186,6 +171,8 @@ async function vDoc(id) {
       </div></div>`);
 }
 function afterDoc(id) {
+  const o = $('#orig'); if (o) o.onclick = () => { if (/pdf/i.test(o.dataset.m || '')) return window.open(o.dataset.o, '_blank'); const im = $('#pvimg'), showO = o.dataset.on !== '1'; im.src = showO ? o.dataset.o : o.dataset.s; o.dataset.on = showO ? '1' : '0';
+    o.innerHTML = showO ? ic('spark', 2) + 'Voir le scan' : ic('camera', 2) + 'Voir l’original'; const b = $('.scanbadge'); if (b) b.textContent = showO ? 'Photo d’origine' : 'Scan nettoyé'; };
   $('#recat').onchange = async e => { await api('/api/docs/' + id, {method:'PATCH', body: JSON.stringify({category: e.target.value})}); await refreshMe(); toast('Catégorie mise à jour'); route(); };
   $('#del').onclick = async () => { if (!confirm('Supprimer ce document ?')) return; await api('/api/docs/' + id, {method:'DELETE'}); await refreshMe(); toast('Document supprimé'); location.hash = '#/'; };
 }
@@ -201,7 +188,7 @@ function msgHTML(m) {
 }
 function vZip() {
   return shell('spark', `<div class="chat">
-    <div class="chathead ${CHAT.length ? 'compact' : ''}" id="zh"><div class="orb lg" id="zorb"></div><div><div class="name">Zip</div><div class="st" id="zst"><span class="dot"></span>Prêt · ${Object.values(ME.counts).reduce((a, b) => a + b, 0)} documents en mémoire</div></div></div>
+    <div class="chathead ${CHAT.length ? 'compact' : ''}" id="zh"><a class="iconbtn chatback" href="#/" aria-label="Retour">${ic('back', 2)}</a><div class="orb lg" id="zorb"></div><div><div class="name">Zip</div><div class="st" id="zst"><span class="dot"></span>Prêt · ${Object.values(ME.counts).reduce((a, b) => a + b, 0)} documents en mémoire</div></div></div>
     <div class="msgs" id="msgs">${CHAT.length ? CHAT.map(msgHTML).join('') : `<div style="text-align:center;margin-top:10px"><div style="font-size:24px;font-weight:650;letter-spacing:-.03em">Que cherchez-vous ?</div><div class="muted" style="margin-top:6px;font-size:14.5px">Décrivez-le comme à un ami. Zip retrouve le bon papier.</div>
       <div class="suggest">${['Retrouve mon ordonnance du docteur Philippe', 'La facture de mon canapé', 'Mon avis d’imposition', 'Qu’est-ce qui est sous garantie ?', 'Mon billet de train pour Paris'].map(s => `<button data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>`}</div>
     <div class="composer"><form id="cf"><input id="ci" placeholder="Demandez à Zip…" autocomplete="off"><button aria-label="Envoyer">${ic('send', 2.2)}</button></form></div></div>`);
