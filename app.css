@@ -1,10 +1,13 @@
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/jakarta-latin.woff2) format("woff2")}
+@font-face{font-family:"Caveat";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/caveat-latin.woff2) format("woff2")}
+@font-face{font-family:"Jakarta Fallback";src:local("Arial");size-adjust:104%;ascent-override:96%;descent-override:26%}
 /* Zip v4 — « Le rangement qui a de la personnalité » */
 :root{
   --midnight:#122C4F; --ocean:#5B88B2; --pearl:#FBF9E4;
   --bg:#FBF9E4; --surface:#FFFEF8; --surface2:#F4F1DC; --ink:#122C4F; --ink2:#3B5A80; --line:rgba(18,44,79,.08);
   --lav:#ECEBFA; --lavink:#2B3A9B; --green:#3E9B6E; --red:#C93A30;
   --shadow:0 1px 2px rgba(18,44,79,.04),0 6px 18px rgba(18,44,79,.06); --shadow2:0 14px 40px rgba(18,44,79,.14);
-  --r:20px; --font:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+  --r:20px; --font:"Plus Jakarta Sans","Jakarta Fallback",-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
   --ease:cubic-bezier(.22,.9,.25,1); --spring:cubic-bezier(.34,1.56,.64,1);
   color-scheme:light;
 }
@@ -287,3 +290,36 @@ a{color:inherit;text-decoration:none}
 .sheet .tile{min-height:120px}
 .chatpage .main{padding-top:calc(env(safe-area-inset-top) + 10px)}
 a.tag{min-height:44px}
+/* ===== v4.1 : stabilité, sobriété, logo ===== */
+html,body{overscroll-behavior:none;overscroll-behavior-y:none}
+body{min-height:100svh}
+#app{min-height:100svh}
+img.logo{display:block;height:40px;width:auto}
+img.logo.xl{height:96px;width:auto}
+.boot img.logo.xl{margin:0 auto}
+/* aucun mouvement en haut d'écran */
+.chero{animation:none;transform:none;height:236px;padding-top:calc(env(safe-area-inset-top) + 12px);box-sizing:content-box;height:200px}
+.cmasc{transform:translateX(-10%)}
+.cmasc .mz{width:130px}
+.cmasc .pop{animation:fade .35s ease both}
+.wtop,.wbot{animation:none}
+.welcome{min-height:100svh}
+.wart .hero{width:min(50vw,190px)}
+.bob{animation:none}
+#toast{top:auto;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);transition:opacity .25s}
+#toast.on{transform:translateX(-50%)}
+.tadd{animation:none}
+/* mascottes plus petites et sobres */
+.ccard .mz{width:76px;top:4px;left:12px}
+.ccard:active .mz,.ccard.hop .mz{animation:nudge .3s ease}
+@keyframes nudge{50%{transform:translateY(-3px)}}
+.cav .mz{width:40px;margin-top:8px}.cav{width:48px;height:48px}
+.pw .mz{width:120px}
+.smasc{width:200px}.sart{width:220px;height:215px}
+.bye .mz{width:80px}.bye{height:100px}
+.empty-st .mz{width:90px}
+.sugg button{display:inline-flex;align-items:center;gap:6px}.sugg button svg{width:16px;height:16px;color:var(--lavink)}
+.cbody{animation:none}
+.ccard{animation:fade .35s calc(var(--i) * 30ms) ease both}
+.paper{animation:fade .3s ease both}
+.drow{animation:fade .3s calc(var(--i, 0) * 25ms) ease both}

@@ -113,7 +113,9 @@ function answer(q, docs) {
     return done(res.length ? `Vous avez ${res.length} achat${res.length > 1 ? 's' : ''} encore sous garantie : ` + res.map(d => `**${d.title}** (jusqu’au ${fmt(d.warranty_end)})`).join(', ') + '.' : 'Aucun achat sous garantie pour le moment.');
   }
   if (!res.length) return done("Je n’ai rien trouvé qui corresponde. Essayez avec un autre mot — un nom, un magasin, une date ?");
+  if (/\b(dernier|derniere|recent|recente)\b/.test(nq) && res.length > 1) { const best = res[0], pool = res.filter(d => d.category === best.category && d.date); if (pool.length > 1) { pool.sort((a, b) => b.date.localeCompare(a.date)); res = [pool[0], ...res.filter(d => d !== pool[0])]; } }
   const top = res[0];
+  if (/\bresum/.test(nq) && top.summary) return done(`Résumé de **${top.title}** : ${top.summary}`);
   if (warranty) {
     const w = res.find(d => d.warranty_end);
     return done(w ? `**${w.title}** est garanti jusqu’au ${fmt(w.warranty_end)}${w.warranty_end >= today ? ' — encore valable.' : ' — la garantie est expirée.'}` : `Je n’ai pas trouvé de date de garantie sur **${top.title}**.`);

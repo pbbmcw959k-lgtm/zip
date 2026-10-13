@@ -68,7 +68,7 @@ const ndocs = n => `${n} doc${n > 1 ? 's' : ''}`;
 const ftype = d => { const m = (d.mime || d.filename || '').toLowerCase(); return /pdf/.test(m) ? ['PDF', '#d64538', '#fde4e1'] : /png|jpe?g|image|heic|webp/.test(m) ? ['IMG', '#2c6fd6', '#dfeafc'] : ['DOC', '#2f7041', '#dcecd8']; };
 const ficon = d => { const [t, c, b] = ftype(d); return `<span class="fic" style="--fc:${c};--fb:${b}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z" fill="currentColor" fill-opacity=".14"/><path d="M14 3v5h5"/></svg><b>${t}</b></span>`; };
 const docRow = (d, i = 0) => `<a class="drow" href="#/doc/${d.id}" style="--i:${Math.min(i, 12)}">${ficon(d)}<span class="dm"><b>${esc(d.title)}</b><small>${esc(fdate(d.date) || '—')}${d.amount != null ? ' · ' + money(d.amount) : ''}</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.2)}</span></a>`;
-const empty = (h, p, cta = true) => `<div class="empty-st">${mimg('Autres', 'bob', 120)}<h3>${h}</h3><p>${p}</p>${cta ? `<button class="btn primary" data-add>${ic('plus', 2.4)}Ajouter un document</button>` : ''}</div>`;
+const empty = (h, p, cta = true) => `<div class="empty-st">${mimg('Autres', '', 96)}<h3>${h}</h3><p>${p}</p>${cta ? `<button class="btn primary" data-add>${ic('plus', 2.4)}Ajouter un document</button>` : ''}</div>`;
 const card = docRow, row = docRow; // compat
 
 // theme: light by default; dark only if chosen in Paramètres
@@ -96,11 +96,11 @@ const topbar = (title = '', right = '', back = true) => `<header class="top">${b
 // ---------- 1. welcome ----------
 function vWelcome() {
   return `<div class="welcome">
-    <div class="wtop"><div class="logo xl" aria-label="Zip">Zip</div>
+    <div class="wtop"><img class="logo xl" src="logo.svg" alt="Zip" width="148" height="97">
       <h1>Vos documents,<br>bien rangés.</h1><p>L’IA s’occupe du reste.</p></div>
     <div class="wart" aria-hidden="true"><span class="hill h1"></span><span class="hill h2"></span><span class="hill h3"></span>
       <span class="fold f1"></span><span class="fold f2"></span><span class="fold f3"></span>
-      <img class="mz bob hero" src="m/hero.webp" alt="" width="226" height="286" fetchpriority="high"></div>
+      <img class="mz hero" src="m/hero.webp" alt="" width="190" height="240" fetchpriority="high"></div>
     <div class="wbot"><a class="btn primary big" href="#/" id="go" data-enter>Commencer ${ic('send', 2.2)}</a>
       <p class="login">Déjà un compte ? <a href="#/" data-enter>Se connecter</a></p></div></div>`;
 }
@@ -110,14 +110,14 @@ function afterWelcome() { document.querySelectorAll('[data-enter]').forEach(a =>
 async function vHome() {
   const cats = ME.categories.filter(c => c !== 'Autres' || ME.counts[c]);
   return shell('home', `
-    <header class="hhead"><div class="logo">Zip</div><a class="rbtn" href="#/zip" aria-label="Ask Zip">${ic('sparkle', 1.9)}</a></header>
+    <header class="hhead"><img class="logo" src="logo.svg" alt="Zip" width="60" height="40"><a class="rbtn" href="#/zip" aria-label="Ask Zip">${ic('sparkle', 1.9)}</a></header>
     <h1 class="hello">Bonjour ${esc(ME.name)} <span aria-hidden="true">👋</span></h1><p class="lead">Voici vos documents du jour.</p>
     <a class="askcard" href="#/zip"><span class="spk" aria-hidden="true">${ic('sparkle', 1.8)}</span><span class="tx"><b>Ask Zip</b><small>Pose une question, trouve un document, ou résume un dossier.</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.4)}</span></a>
     <label class="searchf">${ic('search', 2.2)}<input id="hq" type="search" placeholder="Rechercher un document…" aria-label="Rechercher un document" autocomplete="off"></label>
     <div id="hres" hidden></div>
     <section id="hcats" aria-labelledby="mc"><div class="sechead"><h2 id="mc">Mes catégories</h2><a href="#/browse">Tout voir</a></div>
     <div class="cgrid">${cats.map((c, i) => { const n = ME.counts[c] || 0, [t, d] = tint(c); return `<a class="ccard" data-hop href="#/cat/${encodeURIComponent(c)}" style="--t:${t};--d:${d};--i:${i}" aria-label="${esc(c)}, ${ndocs(n)}">
-      ${mimg(c, '', 116)}<span class="cl"><span><b>${esc(c)}</b><small>${ndocs(n)}</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.4)}</span></span></a>`; }).join('')}</div></section>
+      ${mimg(c, '', 76)}<span class="cl"><span><b>${esc(c)}</b><small>${ndocs(n)}</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.4)}</span></span></a>`; }).join('')}</div></section>
   `);
 }
 function afterHome() {
@@ -150,7 +150,7 @@ async function vCat(c) {
   return shell('cat:' + c, `<div class="chero" style="--t:${t};--d:${d};--s:${s}">
       <span class="blob b1" aria-hidden="true"></span><span class="blob b2" aria-hidden="true"></span>
       <header class="top"><a class="rbtn" href="#/" aria-label="Retour à l’accueil">${ic('back', 2.2)}</a><span class="sp"></span><button class="rbtn" id="more" aria-label="Plus d’options">${ic('dots', 2.6)}</button></header>
-      <div class="cmasc">${mimg(c, 'bob pop', 190)}</div></div>
+      <div class="cmasc">${mimg(c, 'pop', 130)}</div></div>
     <div class="cbody" style="--t:${t};--d:${d}">
       <span class="tag">${esc(c)}</span><h1 class="ctitle">${esc(c)}</h1>
       <p class="cnt">${ic('clip', 2)}${docs.length} document${docs.length > 1 ? 's' : ''}</p>
@@ -212,12 +212,13 @@ function msgHTML(m) {
     ${m.docs && m.docs.length ? `<div class="results">${m.docs.slice(0, 4).map(miniDoc).join('')}</div>` : ''}
     ${m.steps ? `<details><summary class="why">Comment j’ai cherché</summary><ul class="whylist">${m.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>` : ''}</div></div>`;
 }
-function vZip() {
+async function vZip() {
+  const chips = SmartChips.build(await Store.all());
   const total = Object.values(ME.counts).reduce((a, b) => a + b, 0);
   return shell('zip', `${topbar(`<h1 class="ttl chat-t"><span aria-hidden="true">${ic('sparkle', 1.9)}</span>Ask Zip</h1>`)}
     <div class="msgs" id="msgs" aria-live="polite">${CHAT.length ? CHAT.map(msgHTML).join('') : `<div class="msg bot"><span class="zav" aria-hidden="true">${ic('sparkle', 1.8)}</span><div class="bub"><div class="txt">Salut ${esc(ME.name)} ! Je connais tes ${total} documents. Demande-moi n’importe quoi : une facture, une garantie, une date…</div></div></div>`}</div>
     <div class="composer"><form id="cf"><input id="ci" placeholder="Pose ta question…" aria-label="Ta question pour Zip" autocomplete="off" enterkeyhint="send"><button class="send" aria-label="Envoyer la question">${ic('send', 2.4)}</button></form>
-      <div class="sugg">${[['Trouve-moi…', 'Trouve-moi la facture de mon canapé'], ['Montre-moi…', 'Montre-moi mes documents santé'], ['Où est…', 'Où est mon avis d’imposition ?'], ['Garanties', 'Qu’est-ce qui est encore sous garantie ?']].map(([l, q]) => `<button type="button" data-q="${esc(q)}">${esc(l)}</button>`).join('')}</div></div>`, {nav: false, cls: 'chatpage'});
+      <div class="sugg" aria-label="Suggestions basées sur tes documents">${chips.map(c => `<button type="button" data-q="${esc(c.q)}" aria-label="${esc(c.q)}">${c.generic ? '' : ic('sparkle', 2)}${esc(c.label)}</button>`).join('')}</div></div>`, {nav: false, cls: 'chatpage'});
 }
 async function ask(q) {
   if (!q.trim()) return;
@@ -230,7 +231,7 @@ async function ask(q) {
 }
 function afterZip() {
   $('#cf').onsubmit = e => { e.preventDefault(); const v = $('#ci').value; $('#ci').value = ''; ask(v); };
-  document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const ci = $('#ci'); ci.value = b.dataset.q; ci.focus(); });
+  document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => ask(b.dataset.q));
   window.scrollTo(0, document.body.scrollHeight);
 }
 
@@ -245,7 +246,7 @@ function vSettings() {
       <a class="mrow" href="#/zip">${ic('sparkle')}<span>Ask Zip</span>${ic('chev', 2.2)}</a>
       <a class="mrow" href="#/prefs">${ic('gear')}<span>Paramètres</span>${ic('chev', 2.2)}</a>
       <a class="mrow" href="#/help">${ic('help')}<span>Aide & support</span>${ic('chev', 2.2)}</a></nav>
-    <div class="bye" aria-hidden="true">${mimg('Logement', 'bob', 110).replace('m/logement', 'm/hero')}<span class="hand">À bientôt<br>sur Zip ! <i>♡</i></span></div>`);
+    <div class="bye" aria-hidden="true">${mimg('Autres', '', 80)}<span class="hand">À bientôt<br>sur Zip ! <i>♡</i></span></div>`);
 }
 function afterSettings() { $('#zplus').onclick = () => toast('Zip+ arrive bientôt'); }
 function vPrefs() {
@@ -302,7 +303,7 @@ function openAdd(cat) {
 // ---------- processing + 8. success ----------
 function openProcessing() {
   $('#sheet-root').innerHTML = `<div class="overlay proc" role="dialog" aria-modal="true" aria-labelledby="shh"><div class="pw">
-    <img class="mz bob" src="m/hero.webp" alt="" width="170"><h3 id="shh">Zip range ton document…</h3>
+    <img class="mz" src="m/hero.webp" alt="" width="130"><h3 id="shh">Zip range ton document…</h3>
     <p id="pmsg" role="status">Lecture du document…</p><div class="pbar"><i id="pbar"></i></div><div class="steps" id="ps"></div></div></div>`;
 }
 let lastStep = '';
@@ -325,7 +326,7 @@ function showResult(docs) {
   const d = docs[0] || {}, c = d.category || 'Autres', [t, dk] = tint(c), many = docs.length > 1;
   const art = d.thumb ? `<span class="flydoc" style="background-image:url(${d.thumb})"></span>` : `<span class="flydoc"></span>`;
   $('#sheet-root').innerHTML = `<div class="overlay success" role="dialog" aria-modal="true" aria-labelledby="shh" style="--t:${t};--d:${dk}"><div class="sw2">
-    <div class="sart" aria-hidden="true">${art}<img class="mz smasc" src="m/success.webp" alt="" width="250"><span class="okb">${ic('check', 3)}</span></div>
+    <div class="sart" aria-hidden="true">${art}<img class="mz smasc" src="m/success.webp" alt="" width="200"><span class="okb">${ic('check', 3)}</span></div>
     <h2 id="shh">${many ? docs.length + ' documents ajoutés !' : 'Document ajouté !'}</h2>
     <p>${many ? `Tes documents ont bien été rangés automatiquement.` : `Ton document « ${esc(lowerTitle(d.title))} » a bien été enregistré dans <b>${esc(c)}</b>.`}</p>
     <button class="btn primary big" id="okb">Voir mes documents</button>
@@ -349,7 +350,7 @@ async function route() {
     else if (a === 'browse') { html = await vBrowse(); after = afterBrowse; }
     else if (a === 'cat') { html = await vCat(b); after = () => afterCat(b); }
     else if (a === 'doc') { html = await vDoc(b); after = () => afterDoc(b); }
-    else if (a === 'zip') { html = vZip(); after = afterZip; }
+    else if (a === 'zip') { html = await vZip(); after = afterZip; }
     else if (a === 'settings') { html = vSettings(); after = afterSettings; }
     else if (a === 'prefs') { html = vPrefs(); after = afterPrefs; }
     else if (a === 'cats') html = vCats();
@@ -372,7 +373,7 @@ async function resetDemo() {
   closeSheet(); await Store.reset(); sessionStorage.removeItem('zipChat'); CHAT.length = 0; await refreshMe(); toast('Démo réinitialisée'); location.hash = '#/'; route();
 }
 async function boot() {
-  $('#app').innerHTML = `<div class="boot"><div class="logo xl">Zip</div><p>Préparation de ton espace…</p></div>`;
+  $('#app').innerHTML = `<div class="boot"><img class="logo xl" src="logo.svg" alt="Zip" width="148" height="97"><p>Préparation de ton espace…</p></div>`;
   try { await Store.ready(); await refreshMe(); } catch (e) { $('#app').innerHTML = `<div class="boot">${empty('Stockage indisponible', 'Ce navigateur bloque le stockage local (navigation privée ?). ' + esc(e.message), false)}</div>`; return; }
   route();
 }
