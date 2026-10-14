@@ -70,6 +70,18 @@ const ficon = d => { const [t, c, b] = ftype(d); return `<span class="fic" style
 const docRow = (d, i = 0) => `<a class="drow" href="#/doc/${d.id}" style="--i:${Math.min(i, 12)}">${ficon(d)}<span class="dm"><b>${esc(d.title)}</b><small>${esc(fdate(d.date) || '—')}${d.amount != null ? ' · ' + money(d.amount) : ''}</small></span><span class="chv" aria-hidden="true">${ic('chev', 2.2)}</span></a>`;
 const empty = (h, p, cta = true) => `<div class="empty-st">${mimg('Autres', '', 96)}<h3>${h}</h3><p>${p}</p>${cta ? `<button class="btn primary" data-add>${ic('plus', 2.4)}Ajouter un document</button>` : ''}</div>`;
 const card = docRow, row = docRow; // compat
+// Listes longues : on n'affiche que 40 lignes, puis les suivantes à l'approche du bas de l'écran.
+const PAGE = 40;
+const listHTML = docs => docs.slice(0, PAGE).map(docRow).join('');
+function lazyList(el, docs) {
+  if (!el) return; let n = Math.min(PAGE, docs.length); if (lazyList.io) lazyList.io.disconnect();
+  el.querySelectorAll('.lz').forEach(x => x.remove()); if (n >= docs.length) return;
+  const s = document.createElement('div'); s.className = 'lz'; s.setAttribute('aria-hidden', 'true'); s.style.height = '1px'; el.after(s);
+  const io = lazyList.io = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return;
+    el.insertAdjacentHTML('beforeend', docs.slice(n, n + PAGE).map((d, k) => docRow(d, 0)).join('')); n += PAGE;
+    if (n >= docs.length) { io.disconnect(); s.remove(); } }, {rootMargin: '800px'});
+  io.observe(s);
+}
 
 // theme: light by default; dark only if chosen in Paramètres
 document.documentElement.dataset.theme = localStorage.zipTheme === 'dark' ? 'dark' : 'light';
@@ -125,27 +137,29 @@ function afterHome() {
   q.oninput = debounce(async () => {
     const v = q.value.trim(); if (!v) { res.hidden = true; cats.hidden = false; return; }
     const {docs} = await api('/api/docs?q=' + encodeURIComponent(v));
-    res.innerHTML = `<div class="sechead"><h2>${docs.length} résultat${docs.length > 1 ? 's' : ''}</h2></div>` + (docs.length ? `<div class="dlist">${docs.map(docRow).join('')}</div>` : `<p class="lead">Rien trouvé pour « ${esc(v)} ». Essaie <a class="lnk" href="#/zip">Ask Zip</a>.</p>`);
-    res.hidden = false; cats.hidden = true;
+    res.innerHTML = `<div class="sechead"><h2>${docs.length} résultat${docs.length > 1 ? 's' : ''}</h2></div>` + (docs.length ? `<div class="dlist" id="hl">${listHTML(docs)}</div>` : `<p class="lead">Rien trouvé pour « ${esc(v)} ». Essaie <a class="lnk" href="#/zip">Ask Zip</a>.</p>`);
+    res.hidden = false; cats.hidden = true; lazyList($('#hl'), docs);
   }, 180);
 }
 
 // ---------- documents (browse) ----------
+let LIST = [];
 async function vBrowse() {
-  const {docs} = await api('/api/docs');
+  const {docs} = await api('/api/docs'); LIST = docs;
   return shell('docs', `${topbar('<h1 class="ttl">Documents</h1>', '', false)}
     <label class="searchf">${ic('search', 2.2)}<input id="sq" type="search" placeholder="Rechercher un document…" aria-label="Rechercher un document" autocomplete="off"></label>
     <div class="chips" role="list">${ME.categories.filter(c => ME.counts[c]).map(c => `<a role="listitem" class="chip" href="#/cat/${encodeURIComponent(c)}" style="--t:${tint(c)[0]};--d:${tint(c)[1]}">${esc(c)} <span>${ME.counts[c]}</span></a>`).join('')}</div>
     <div class="sechead"><h2 id="bc">${docs.length} documents</h2></div>
-    <div class="dlist" id="bl">${docs.length ? docs.map(docRow).join('') : ''}</div>${docs.length ? '' : empty('Rien ici pour l’instant', 'Tes documents apparaîtront ici, rangés automatiquement.')}`);
+    <div class="dlist" id="bl">${docs.length ? listHTML(docs) : ''}</div>${docs.length ? '' : empty('Rien ici pour l’instant', 'Tes documents apparaîtront ici, rangés automatiquement.')}`);
 }
 function afterBrowse() {
-  const sq = $('#sq'); sq.oninput = debounce(async () => { const {docs} = await api('/api/docs' + (sq.value ? '?q=' + encodeURIComponent(sq.value) : '')); $('#bl').innerHTML = docs.map(docRow).join(''); $('#bc').textContent = sq.value ? `${docs.length} résultat${docs.length > 1 ? 's' : ''}` : `${docs.length} documents`; }, 180);
+  lazyList($('#bl'), LIST);
+  const sq = $('#sq'); sq.oninput = debounce(async () => { const {docs} = await api('/api/docs' + (sq.value ? '?q=' + encodeURIComponent(sq.value) : '')); $('#bl').innerHTML = listHTML(docs); lazyList($('#bl'), docs); $('#bc').textContent = sq.value ? `${docs.length} résultat${docs.length > 1 ? 's' : ''}` : `${docs.length} documents`; }, 180);
 }
 
 // ---------- 5. category ----------
 async function vCat(c) {
-  const {docs} = await api('/api/docs?category=' + encodeURIComponent(c));
+  const {docs} = await api('/api/docs?category=' + encodeURIComponent(c)); LIST = docs;
   const [t, d, s] = tint(c);
   return shell('cat:' + c, `<div class="chero" style="--t:${t};--d:${d};--s:${s}">
       <span class="blob b1" aria-hidden="true"></span><span class="blob b2" aria-hidden="true"></span>
@@ -157,10 +171,11 @@ async function vCat(c) {
       <p class="cdesc">${esc(DESC[c] || '').replace('\n', '<br>')}</p>
       <button class="btn primary wide" data-add data-cat="${esc(c)}">${ic('plus', 2.4)}Ajouter un document</button>
       <div class="sechead"><h2>Documents</h2></div>
-      ${docs.length ? `<div class="dlist">${docs.map(docRow).join('')}</div>` : `<p class="lead">Aucun document pour l’instant. Dès qu’un document ${c === 'Santé' ? 'médical' : 'de ce type'} arrive, Zip le range ici.</p>`}
+      ${docs.length ? `<div class="dlist" id="cl">${listHTML(docs)}</div>` : `<p class="lead">Aucun document pour l’instant. Dès qu’un document ${c === 'Santé' ? 'médical' : 'de ce type'} arrive, Zip le range ici.</p>`}
     </div>`, {cls: 'catpage'});
 }
 function afterCat(c) {
+  lazyList($('#cl'), LIST);
   $('#more').onclick = () => sheet(`<div class="shead"><h3 id="shh">${esc(c)}</h3><button class="rbtn" id="shx" aria-label="Fermer">${ic('close', 2.2)}</button></div>
     <div class="menu"><a class="mrow" href="#/zip">${ic('sparkle')}<span>Demander à Zip</span>${ic('chev', 2.2)}</a><a class="mrow" href="#/browse">${ic('file')}<span>Tous les documents</span>${ic('chev', 2.2)}</a></div>`);
 }
@@ -256,10 +271,15 @@ function vPrefs() {
       <label class="mrow">${ic('moon')}<span>Mode sombre</span><input type="checkbox" role="switch" id="dk" ${dark ? 'checked' : ''} class="sw"></label>
       <a class="mrow" href="#/inbox">${ic('mail')}<span>Adresse e-mail Zip <span class="soon">Bientôt</span></span>${ic('chev', 2.2)}</a>
       <a class="mrow" href="#/welcome">${ic('home')}<span>Revoir l’écran d’accueil</span>${ic('chev', 2.2)}</a>
+      <button class="mrow red" id="wipe">${ic('trash')}<span>Vider ma bibliothèque</span>${ic('chev', 2.2)}</button>
       <button class="mrow red" id="lo">${ic('out')}<span>Réinitialiser la démo</span>${ic('chev', 2.2)}</button></div>
     <p class="note">Démo : tes documents restent uniquement sur cet appareil (aucun envoi vers un serveur). N’importe pas de vrais documents sensibles.</p>`);
 }
-function afterPrefs() { $('#dk').onchange = e => { document.documentElement.dataset.theme = localStorage.zipTheme = e.target.checked ? 'dark' : 'light'; }; $('#lo').onclick = resetDemo; }
+function afterPrefs() { $('#dk').onchange = e => { document.documentElement.dataset.theme = localStorage.zipTheme = e.target.checked ? 'dark' : 'light'; }; $('#lo').onclick = resetDemo; $('#wipe').onclick = wipeAll; }
+async function wipeAll() {
+  if (!confirm('Supprimer tous les documents de cet appareil ? Cette action est définitive.')) return;
+  await Store.wipe(); sessionStorage.removeItem('zipChat'); CHAT.length = 0; await refreshMe(); toast('Bibliothèque vidée'); location.hash = '#/browse';
+}
 function vCats() {
   const cats = ME.categories.filter(c => c !== 'Autres' || ME.counts[c]);
   return shell('docs', `${topbar('<h1 class="ttl">Catégories</h1>')}<div class="menu">${cats.map(c => catRow(c)).join('')}</div>`);
@@ -319,11 +339,14 @@ async function uploadFiles(files, cat) {
     let [r] = await Promise.all([api('/api/upload', {method:'POST', body: fd, progress: onProgress}), new Promise(s => setTimeout(s, 700))]);
     if (cat) r = {docs: await Promise.all(r.docs.map(d => d.category === cat ? d : api('/api/docs/' + d.id, {method:'PATCH', body: JSON.stringify({category: cat})})))};
     await refreshMe(); showResult(r.docs);
-  } catch (e) { closeSheet(); toast(e.message); }
+    if (r.errors && r.errors.length) setTimeout(() => toast(r.errors.length > 1 ? `${r.errors.length} fichiers n’ont pas pu être importés` : r.errors[0]), 300);
+  } catch (e) { closeSheet(); toast(e && e.fr ? e.message : 'Import impossible : ' + frErr(e)); }
 }
+const frErr = e => { const m = String(e && e.message || e || ''); return /quota|space|full/i.test(m) ? 'espace de stockage plein sur cet appareil.' : /network|fetch|load/i.test(m) ? 'problème de connexion.' : 'erreur inattendue, réessaie.'; };
 const lowerTitle = t => String(t || "document").split(" — ")[0];
 function showResult(docs) {
   const d = docs[0] || {}, c = d.category || 'Autres', [t, dk] = tint(c), many = docs.length > 1;
+  if (!many && d.unreadable) return showUnreadable(d);
   const art = d.thumb ? `<span class="flydoc" style="background-image:url(${d.thumb})"></span>` : `<span class="flydoc"></span>`;
   $('#sheet-root').innerHTML = `<div class="overlay success" role="dialog" aria-modal="true" aria-labelledby="shh" style="--t:${t};--d:${dk}"><div class="sw2">
     <div class="sart" aria-hidden="true">${art}<img class="mz smasc" src="m/success.webp" alt="" width="200"><span class="okb">${ic('check', 3)}</span></div>
@@ -334,6 +357,19 @@ function showResult(docs) {
   $('#okb').onclick = () => { closeSheet(); const h = '#/cat/' + encodeURIComponent(c); location.hash === h ? route() : (location.hash = h); };
   $('#okd').onclick = () => { closeSheet(); if (many || !d.id) return route(); location.hash = '#/doc/' + d.id; };
   $('#okb').focus({preventScroll: true});
+}
+
+function showUnreadable(d) {
+  const [t, dk] = tint('Autres');
+  $('#sheet-root').innerHTML = `<div class="overlay success" role="dialog" aria-modal="true" aria-labelledby="shh" style="--t:${t};--d:${dk}"><div class="sw2">
+    <div class="sart" aria-hidden="true">${d.thumb ? `<span class="flydoc" style="background-image:url(${d.thumb})"></span>` : '<span class="flydoc"></span>'}<img class="mz smasc" src="m/hero.webp" alt="" width="200"></div>
+    <h2 id="shh">${esc(d.title)}</h2>
+    <p>${esc(d.summary)}</p>
+    <button class="btn primary big" id="okr">Supprimer et réessayer</button>
+    <button class="btn text" id="okk">Garder quand même (dans « Autres »)</button></div></div>`;
+  $('#okr').onclick = async () => { await api('/api/docs/' + d.id, {method: 'DELETE'}); await refreshMe(); closeSheet(); openAdd(); };
+  $('#okk').onclick = () => { closeSheet(); location.hash = '#/doc/' + d.id; };
+  $('#okr').focus({preventScroll: true});
 }
 
 // ---------- router ----------
@@ -374,8 +410,8 @@ async function resetDemo() {
 }
 async function boot() {
   $('#app').innerHTML = `<div class="boot"><img class="logo xl" src="logo.svg" alt="Zip" width="148" height="97"><p>Préparation de ton espace…</p></div>`;
-  try { await Store.ready(); await refreshMe(); } catch (e) { $('#app').innerHTML = `<div class="boot">${empty('Stockage indisponible', 'Ce navigateur bloque le stockage local (navigation privée ?). ' + esc(e.message), false)}</div>`; return; }
+  try { await Store.ready(); await refreshMe(); } catch (e) { $('#app').innerHTML = `<div class="boot">${empty('Stockage indisponible', 'Ce navigateur bloque le stockage local (navigation privée ?). Ouvre Zip dans un onglet normal.', false)}</div>`; console.warn(e); return; }
   route();
 }
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(() => navigator.serviceWorker.ready).then(r => r.active && r.active.postMessage('warm-libs')).catch(() => {});
 boot();

@@ -1,14 +1,14 @@
-// Zip document scanner: OpenCV.js (lazy, from jsDelivr) — find the paper, flatten it (perspective), then a clean "scan" look.
+// Zip document scanner: OpenCV.js (lazy, auto-hébergé dans vendor/) — find the paper, flatten it (perspective), then a clean "scan" look.
 // Same algorithm as the Python version used for the demo previews. Falls back to the original photo if no document is found.
 'use strict';
 const Scanner = (() => {
-  const SRC = 'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js';
+  const SRC = new URL('vendor/opencv/opencv.js', document.baseURI).href; // @techstark/opencv-js 4.10.0-release.1
   let ready;
   function load(progress) {
     return ready ||= new Promise((res, rej) => {
-      progress && progress('Téléchargement du scanner (une seule fois, ~9 Mo)…', 0.05);
+      progress && progress('Préparation du scanner…', 0.05);
       const s = document.createElement('script'); s.src = SRC; s.async = true;
-      s.onerror = () => { ready = null; rej(new Error('Scanner indisponible (réseau)')); };
+      s.onerror = () => { ready = null; rej(new Error('Scanner indisponible')); };
       s.onload = async () => {
         try {
           const c = window.cv, done = m => { if (m && typeof m.then === 'function') { try { delete m.then; } catch (_) { m.then = undefined; } } window.cv = m; res(m); };
