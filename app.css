@@ -323,3 +323,13 @@ img.logo.xl{height:96px;width:auto}
 .ccard{animation:fade .35s calc(var(--i) * 30ms) ease both}
 .paper{animation:fade .3s ease both}
 .drow{animation:fade .3s calc(var(--i, 0) * 25ms) ease both}
+/* v5.1 native bottom bar: edge-to-edge, solid, safe-area aware */
+.tabbar{left:0;right:0;bottom:0;transform:none;width:auto;max-width:none;margin:0;border-radius:0;padding:4px max(8px,env(safe-area-inset-left)) env(safe-area-inset-bottom) max(8px,env(safe-area-inset-right));grid-template-columns:repeat(5,minmax(0,108px));justify-content:center;background:#FFFEF8;box-shadow:0 -1px 0 var(--line),0 -6px 18px rgba(18,44,79,.06);backdrop-filter:none;-webkit-backdrop-filter:none;-webkit-transform:translateZ(0);will-change:auto;contain:layout paint}
+:root[data-theme=dark] .tabbar{background:#16243A}
+.tabbar a{min-height:54px}
+.tadd{margin-top:-18px}
+.dock{left:0;right:0;bottom:0;transform:none;width:auto;border-radius:0;padding:8px max(16px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-right));box-shadow:0 -1px 0 var(--line),0 -6px 18px rgba(18,44,79,.06)}
+.composer{background:var(--bg);box-shadow:0 -1px 0 var(--line)}
+.main,.docpage .main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+.chatpage .main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+#toast{bottom:calc(84px + env(safe-area-inset-bottom))}
