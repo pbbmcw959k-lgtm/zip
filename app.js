@@ -400,6 +400,32 @@ function renderView(html, after, kind) {
   const app = $('#app'); app.innerHTML = html; app.dataset.view = kind;
   wire(); after && after();
   if (kind !== 'zip') window.scrollTo(0, 0);
+  // Pages avec barre du bas : fond html/body = fond de la barre (Safari 26 teinte la zone sous sa barre flottante avec ce fond).
+  document.documentElement.classList.toggle('hasnav', !!app.querySelector('.tabbar, .dock, .composer'));
+  if (kind === 'home') a2hs();
+}
+// ---------- barre du bas : compense une barre de navigateur qui recouvre le bas de la page (iOS 26.0, WebViews) ----------
+(() => {
+  const vv = window.visualViewport; if (!vv) return; let raf = 0, last = -1;
+  const upd = () => { raf = 0; if (Math.abs(vv.scale - 1) > 0.01) return; // pas pendant un zoom
+    const hidden = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+    const v = hidden > 0 && hidden < 140 ? hidden : 0; // clavier ouvert (> 140 px) : on ne bouge pas la barre
+    if (v !== last) { last = v; document.documentElement.style.setProperty('--vvb', v + 'px'); } };
+  const q = () => { if (!raf) raf = requestAnimationFrame(upd); };
+  vv.addEventListener('resize', q); vv.addEventListener('scroll', q); addEventListener('orientationchange', q); q();
+})();
+// ---------- suggestion « Ajouter à l'écran d'accueil » (iPhone/iPad Safari, une seule fois) ----------
+function a2hs() {
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  const inApp = /FBAN|FBAV|Instagram|Line\/|Twitter|LinkedInApp|GSA\/|CriOS|FxiOS|EdgiOS|Snapchat|TikTok|Telegram|Discord/.test(ua) || (ios && !/Safari\//.test(ua));
+  if (!ios || standalone || localStorage.zipA2hs || $('#a2hs')) return;
+  const el = document.createElement('div'); el.id = 'a2hs'; el.className = 'a2hs'; el.setAttribute('role', 'note');
+  el.innerHTML = inApp
+    ? `<span class="a2i" aria-hidden="true">${ic('ext', 2)}</span><span class="a2t"><b>Ouvre Zip dans Safari</b><small>Puis Partager › « Sur l’écran d’accueil » pour l’utiliser comme une vraie app.</small></span><button class="a2x" aria-label="Masquer ce conseil">${ic('close', 2.2)}</button>`
+    : `<span class="a2i" aria-hidden="true">${ic('share', 2)}</span><span class="a2t"><b>Installe Zip comme une app</b><small>Touche Partager ${ic('share', 2)} puis « Sur l’écran d’accueil » : plein écran, sans barre Safari.</small></span><button class="a2x" aria-label="Masquer ce conseil">${ic('close', 2.2)}</button>`;
+  const lead = $('.lead'); lead && lead.after(el);
+  el.querySelector('.a2x').onclick = () => { localStorage.zipA2hs = '1'; el.remove(); };
 }
 const debounce = (f, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
 addEventListener('hashchange', route);

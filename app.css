@@ -333,3 +333,24 @@ img.logo.xl{height:96px;width:auto}
 .main,.docpage .main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .chatpage .main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 #toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+/* v5.2 — iOS 26 Safari (barre flottante « Liquid Glass ») + anciens iOS + écran d'accueil + WebViews
+   - Safari 26 ignore theme-color et teinte la zone sous sa barre avec la couleur de fond de l'élément fixe qui touche le bord bas
+     (≥ 80 % de large, ≥ 3 px, sans backdrop-filter), sinon avec le fond de html/body. On donne donc les deux.
+   - --vvb : hauteur de page masquée par une barre qui recouvre la mise en page (iOS 26.0, certaines WebViews), mesurée via visualViewport. */
+:root{--vvb:0px;--navbg:#FFFEF8}
+:root[data-theme=dark]{--navbg:#16243A}
+html.hasnav,html.hasnav body{background:var(--navbg)}
+html.hasnav #app{background:var(--bg);min-height:100vh;min-height:100svh}
+.tabbar{bottom:var(--vvb);background:var(--navbg);contain:none;-webkit-transform:none;transform:none;
+  padding-bottom:max(10px,env(safe-area-inset-bottom));transition:bottom .18s ease-out}
+.tabbar::after{content:"";position:absolute;left:0;right:0;top:100%;height:200px;background:var(--navbg)}
+.dock,.composer{bottom:var(--vvb);transition:bottom .18s ease-out}
+.dock{background:var(--surface);padding-bottom:max(10px,calc(8px + env(safe-area-inset-bottom)))}
+.composer::after,.dock::after{content:"";position:absolute;left:0;right:0;top:100%;height:200px;background:inherit}
+.main,.docpage .main{padding-bottom:calc(104px + env(safe-area-inset-bottom) + var(--vvb))}
+.chatpage .main{padding-bottom:calc(118px + env(safe-area-inset-bottom) + var(--vvb))}
+#toast{bottom:calc(92px + env(safe-area-inset-bottom) + var(--vvb))}
+.a2hs{display:flex;gap:12px;align-items:center;margin:14px 0 0;padding:12px 12px 12px 14px;border-radius:18px;background:var(--lav);color:var(--lavink)}
+.a2hs .a2i svg{width:24px;height:24px}.a2t{flex:1;display:flex;flex-direction:column;gap:2px}.a2t b{color:var(--ink);font-weight:800}
+.a2t small{font-size:.86rem;font-weight:600;line-height:1.35}.a2t small svg{width:15px;height:15px;vertical-align:-2px}
+.a2x{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer}.a2x svg{width:18px;height:18px}
